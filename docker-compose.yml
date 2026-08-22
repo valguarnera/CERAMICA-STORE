@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: ceramica-store:dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_PATH=/app/data/ceramica.db
+      - MP_SANDBOX=true
+      - EMAIL_PROVIDER=console
+    env_file:
+      - .env.local
+    volumes:
+      - ceramica-data:/app/data
+      - ceramica-backups:/app/backups
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: ./public
+          target: /app/public
+
+volumes:
+  ceramica-data:
+  ceramica-backups:
