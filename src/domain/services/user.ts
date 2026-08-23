@@ -1,6 +1,7 @@
-import type { Kysely } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '@/domain/db';
 import { randomUUID } from 'crypto';
+import { sql } from 'kysely';
 
 export interface User {
   id: string;
@@ -69,42 +70,37 @@ export class UserService {
   }
 
   async createUser(input: CreateUserInput): Promise<User> {
-    const id = randomUUID();
-    const isFirstUser = await this.isFirstUser();
+    return this.db.transaction().execute(async (trx: Transaction<Database>) => {
+      const id = randomUUID();
+      const now = new Date().toISOString();
 
-    const role = isFirstUser ? 'ADMIN' : 'CUSTOMER';
+      const result = await sql`
+        INSERT INTO users (id, email, password_hash, role, name, created_at, updated_at)
+        SELECT ${id}, ${input.email}, ${input.passwordHash},
+          CASE WHEN (SELECT COUNT(*) FROM users) = 0 THEN 'ADMIN' ELSE 'CUSTOMER' END,
+          ${input.name}, ${now}, ${now}
+        WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = ${input.email})
+      `.execute(trx);
 
-    await this.db
-      .insertInto('users')
-      .values({
-        id,
-        email: input.email,
-        password_hash: input.passwordHash,
-        name: input.name,
-        role,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .execute();
+      if (result.rowsAffected === 0n) {
+        throw new Error('EMAIL_EXISTS');
+      }
 
-    const now = new Date().toISOString();
-    return {
-      id,
-      email: input.email,
-      name: input.name,
-      role,
-      createdAt: now,
-      updatedAt: now,
-    };
-  }
+      const insertedUser = await trx
+        .selectFrom('users')
+        .select(['id', 'email', 'name', 'role', 'created_at', 'updated_at'])
+        .where('id', '=', id)
+        .executeTakeFirst();
 
-  private async isFirstUser(): Promise<boolean> {
-    const count = await this.db
-      .selectFrom('users')
-      .select(({ fn }) => fn.count('id').as('count'))
-      .executeTakeFirst();
-
-    return Number(count?.count ?? 0) === 0;
+      return {
+        id: insertedUser!.id,
+        email: insertedUser!.email,
+        name: insertedUser!.name,
+        role: insertedUser!.role,
+        createdAt: insertedUser!.created_at,
+        updatedAt: insertedUser!.updated_at,
+      };
+    });
   }
 
   async getUserCount(): Promise<number> {
