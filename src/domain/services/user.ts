@@ -82,7 +82,7 @@ export class UserService {
         WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = ${input.email})
       `.execute(trx);
 
-      if (result.rowsAffected === 0n) {
+      if (Number((result as unknown as { numInsertedOrUpdatedRows: bigint }).numInsertedOrUpdatedRows) === 0) {
         throw new Error('EMAIL_EXISTS');
       }
 
