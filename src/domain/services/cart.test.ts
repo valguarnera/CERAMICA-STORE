@@ -127,6 +127,10 @@ describe('CartService', () => {
     productService = new ProductService(db);
   });
 
+  afterEach(async () => {
+    await db.destroy();
+  });
+
   async function createProduct(overrides: Partial<{
     id: string;
     stock: number;

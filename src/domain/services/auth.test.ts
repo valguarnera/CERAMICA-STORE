@@ -49,6 +49,10 @@ describe('AuthService', () => {
     authService = new AuthService(db);
   });
 
+  afterEach(async () => {
+    await db.destroy();
+  });
+
   it('primer registro → ADMIN', async () => {
     const result = await authService.register({
       email: 'admin@test.com',
@@ -225,5 +229,7 @@ it('validar sesión expirada retorna null', async () => {
     const authServiceWithExpired = new AuthService(db2);
     const session = await authServiceWithExpired.validateSession(sessionId);
     expect(session).toBeNull();
+
+    await db2.destroy();
   });
 });

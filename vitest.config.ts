@@ -7,10 +7,11 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     globals: true,
     // No setup files - each test manages its own DB
-    pool: 'vmThreads',
+    pool: 'forks',
     poolOptions: {
-      vmThreads: {
-        singleThread: true,
+      forks: {
+        singleFork: true,
+        isolate: false,
       },
     },
     coverage: {
