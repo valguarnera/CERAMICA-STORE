@@ -18,6 +18,9 @@ export function Header() {
           <Link href="/productos" className="hover:underline">
             Catálogo
           </Link>
+          <Link href="/checkout" className="hover:underline">
+            Checkout
+          </Link>
         </nav>
 
         <Link

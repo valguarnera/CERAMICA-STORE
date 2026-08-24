@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/infrastructure/database';
 import { OrderService } from '@/domain/services/order';
-import { CartService } from '@/domain/services/cart';
 import { getCartSecret } from '@/presentation/lib/cart-cookie';
 
 export async function GET(

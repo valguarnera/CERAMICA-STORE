@@ -1,7 +1,7 @@
 # CERAMICA-STORE — Development Timeline
 
-> **Estado actual:** Fase 5 — COMPLETADA
-> **Próxima fase:** Fase 6 — Checkout / Mercado Pago
+> **Estado actual:** Fase 6 — COMPLETADA
+> **Próxima fase:** Fase 7 — Backoffice ADMIN
 > **Fuente de verdad:** `SPEC/`
 > **Última actualización:** 2026-08-24
 
@@ -113,7 +113,7 @@ Fase completa
 | 3    | Carrito y pedidos                    | ✅ COMPLETADA |
 | 4    | Autenticación y servicios de dominio | ✅ COMPLETADA |
 | 5    | Storefront / Catálogo                | ✅ COMPLETADA |
-| 6    | Checkout / Mercado Pago              | ⏳ PRÓXIMA    |
+| 6    | Checkout / Mercado Pago              | ✅ COMPLETADA |
 | 7    | Backoffice ADMIN                     | ⏳ PENDIENTE  |
 | 8    | Seguridad / Hardening                | ⏳ PENDIENTE  |
 | 9    | Testing integral                     | ⏳ PENDIENTE  |
@@ -418,7 +418,7 @@ Construir la experiencia pública de compra (catálogo, detalle, carrito UI).
 
 ### Estado
 
-`⏳ PRÓXIMA`
+`✅ COMPLETADA`
 
 ### Objetivo
 
@@ -434,14 +434,25 @@ Implementar el proceso completo de checkout y pago.
 * Autenticación (registro, login, logout, middleware ADMIN, bootstrap ADMIN).
 * Storefront completo (catálogo, detalle, carrito UI).
 
-### Alcance de la Fase 6 (no repetir lo anterior)
+### Lo implementado en Fase 6
 
-* Checkout: formulario de datos de envío/facturación, creación de orden `PENDING`.
-* Preferencia Mercado Pago (multi‑item) → redirect a Checkout Pro.
-* Webhook MP (`/api/webhooks/mercadopago`): verificación HMAC, idempotencia (`mp_payment_id` UNIQUE + `webhooks_log`), actualización de `Order`/`Payment` solo vía webhook validado.
-* Páginas de resultado (`/checkout/success`, `/checkout/failure`, `/checkout/pending`).
-* Sincronización manual desde backoffice (botón “Sincronizar” → consulta MP API).
-* Tests de idempotencia, webhooks duplicados, fuera de orden, transiciones de estado.
+* **Checkout**: formulario de datos de envío/facturación (`/checkout`) → `POST /api/checkout/start` crea `Order PENDING` + items + descuenta stock atómicamente.
+* **Mercado Pago Checkout Pro**: creación de Preference multi‑item, redirect a `init_point`.
+* **Webhook MP** (`POST /api/webhooks/mercadopago`): verificación HMAC SHA‑256 (`x-signature`, `x-request-id`), idempotencia (`mp_payment_id` UNIQUE + `webhooks_log.processed`), consulta server‑side `GET /v1/payments/{id}`, actualización atómica de `Payment` + `Order` en la misma transacción.
+* **PaymentService** (dominio) + `IPaymentGateway` + `MercadoPagoClient` (infra) – separación clara, sin secretos en dominio.
+* **Polling de resultado**: página `/checkout/result` consulta `GET /api/checkout/status/:orderId` cada 3 s (máx 30 s) y muestra confirmación, “procesando” o “rechazado”.
+* **Endpoint de status**: `GET /api/checkout/status/[orderId]` devuelve estado actual de Order y Payment.
+* **Corrección de ruta dinámica**: eliminado directorio duplicado `\[orderId\]`; ruta canónica `[orderId]`.
+* **Invariantes respetadas**: INV‑006 (precio server‑side), INV‑007 (PAID solo por webhook), INV‑008 (idempotencia webhook), INV‑009 (transiciones unidireccionales), INV‑010 (snapshot histórico), INV‑011 (admin no setea estado), INV‑012/013 (conciliación `mp_payment_id` / `external_reference`).
+* **Tests**: 3 tests unitarios en `payment.test.ts` (crear preference, idempotencia webhook, mapeo approved→PAID). Suite completa **54 tests** pasando (cart, order, auth, migrations, product, payment).
+* **Lint / Typecheck / Build**: `npm run lint` ✅, `npm run typecheck` ✅, `npm run build` ✅ (página `/checkout/result` marcada Dynamic).
+* **Smoke test**: `npm run dev` arranca limpio, `GET /` 200, `GET /api/checkout/status/test` 404 (ruta reconocida).
+
+### Deuda técnica registrada
+
+* Rate limiting sigue en `Map` memoria (Fase 8).
+* Flakiness ocasional de `better‑sqlite3` en teardown paralelo de tests (documentado).
+* Refund implementado con fetch genérico; cuando se use SDK oficial se simplificará.
 
 ### Regla crítica
 
@@ -719,7 +730,7 @@ FASE 2  Persistencia            ██████████ ✅
 FASE 3  Carrito / Pedidos       ██████████ ✅
 FASE 4  Auth / Sesiones         ██████████ ✅
 FASE 5  Storefront              ██████████ ✅
-FASE 6  Checkout / MP                  ░░ ⏳
+FASE 6  Checkout / MP                  ██████████ ✅
 FASE 7  Backoffice                     ░░ ⏳
 FASE 8  Security                       ░░ ⏳
 FASE 9  Testing integral               ░░ ⏳
@@ -732,23 +743,23 @@ FASE 12 PostgreSQL                     ░░ ⏳
 
 ## 19. Próximo trabajo
 
-### FASE 6 — CHECKOUT / MERCADO PAGO
+### FASE 7 — BACKOFFICE ADMIN
 
 El próximo agente debe comenzar por:
 
 1. Leer `TIMELINE.md`.
-2. Confirmar que Fases 1‑5 permanecen completas.
-3. Leer los documentos de `SPEC/` relacionados con Checkout y MP (`payment-model.md`, `mp-integration.md`, `UC-005`, `UC-006`, `UC-007`, `UC-017`).
+2. Confirmar que Fases 1‑6 permanecen completas.
+3. Leer los documentos de `SPEC/` relacionados con Backoffice (`UC-010`, `UC-011`, `UC-013`, `UC-014`, `UC-015`, `UC-016`, `UC-018` y arquitectura admin).
 4. Identificar los casos de uso correspondientes.
-5. Revisar el código existente (ProductService, CartService, Cart API, OrderService, autenticación, Storefront) **sin reimplementar**.
-6. Crear un plan de implementación limitado al alcance de Fase 6.
-7. Implementar únicamente checkout, preferencia MP, webhook, páginas de resultado y sincronización.
-8. Ejecutar los tests existentes y agregar los nuevos (idempotencia, webhooks, transiciones).
-9. Verificar invariantes INV‑006 a INV‑013.
+5. Revisar el código existente (ProductService, OrderService, autenticación, middleware ADMIN) **sin reimplementar**.
+6. Crear un plan de implementación limitado al alcance de Fase 7 (CRUD productos, listado/gestión pedidos, stock, usuarios, configuración).
+7. Implementar únicamente las áreas listadas en Fase 7.
+8. Ejecutar los tests existentes y agregar los nuevos (permisos ADMIN, CRUD, stock).
+9. Verificar invariantes INV‑001 a INV‑003 (autorización).
 10. No modificar funcionalidades de fases cerradas sin justificación.
 11. Informar exactamente qué se hizo y qué queda pendiente.
 
-**No avanzar a Fase 7 hasta que Fase 6 cumpla sus criterios de finalización.**
+**No avanzar a Fase 8 hasta que Fase 7 cumpla sus criterios de finalización.**
 
 ---
 

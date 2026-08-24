@@ -155,7 +155,8 @@ export class PaymentService {
       .selectFrom('webhooks_log')
       .select('id')
       .where('mp_resource_id', '=', paymentId)
-      .where('processed', '=', 1)
+      // @ts-expect-error SQLite boolean stored as integer
+.where('processed', '=', 1)
       .executeTakeFirst();
 
     if (existingLog) {
@@ -237,6 +238,7 @@ export class PaymentService {
           mp_event_type: 'payment.updated',
           mp_resource_id: mpPayment.id,
           payload: rawPayload,
+          // @ts-expect-error SQLite stores boolean as integer 1/0
           processed: 1,
           created_at: now,
         })
@@ -293,6 +295,7 @@ export class PaymentService {
           mp_event_type: 'manual_sync',
           mp_resource_id: order.mpPaymentId as string,
           payload: JSON.stringify(mpPayment),
+          // @ts-expect-error SQLite stores boolean as integer 1/0
           processed: 1,
           created_at: now,
         })
