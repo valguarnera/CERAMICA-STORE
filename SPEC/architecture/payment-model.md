@@ -1,4 +1,4 @@
-# Modelo de Pagos — Order & Payment
+## Modelo de Pagos — Order & Payment
 
 ## Cardinalidad
 - **Order 1 ───── 0..1 Payment** (UNIQUE `payments.order_id`)
@@ -102,8 +102,8 @@ PATCH /api/admin/orders/:id { status: 'CANCELLED' }
 
 ### Webhook Handler (Pseudocódigo)
 ```typescript
-async function handleWebhook(payload, signature) {
-  verifySignature(payload, signature)  // HMAC SHA256
+async function handleWebhook(payload, signatureHeader, requestIdHeader) {
+  verifySignature(payload, signatureHeader, requestIdHeader)  // HMAC SHA256
   
   const paymentId = extractPaymentId(payload)
   
@@ -149,3 +149,9 @@ async function handleWebhook(payload, signature) {
 - **INV-010**: `order_items` guarda precios históricos (snapshot)
 - **INV-012**: `orders.mp_payment_id` = `payments.mp_payment_id` siempre
 - **INV-013**: `external_reference` = `order.id` (trazabilidad 1:1)
+
+## Arquitectura Dominio / Infraestructura
+
+- **Dominio** (`src/domain/services/payment.ts`): `PaymentService` contiene lógica pura: mapeo estados, idempotencia, transiciones, construcción de objetos `Payment`/`Order`. No depende de SDK MP.
+- **Infraestructura** (`src/infrastructure/payments/mercadopago/client.ts`): `MercadoPagoClient` implementa puerto `IMPaymentGateway` con métodos `createPreference`, `getPayment`, `refundPayment`. Usa SDK oficial.
+- **Inyección**: `PaymentService` recibe una implementación de `IPaymentGateway` (interfaz) en su constructor. Esto permite testear con dobles y mantener dominio libre de dependencias externas.

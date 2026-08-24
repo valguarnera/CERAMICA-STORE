@@ -52,25 +52,42 @@ const preference = {
 
 ## Validación de Firma Webhook (Obligatoria)
 
+Mercado Pago envía los headers:
+
+- `x-signature`: `ts=<timestamp>,v1=<hex>`
+- `x-request-id`: `<request-id>`
+
+El payload JSON contiene `data.id` (payment ID).
+
 ```typescript
-function verifyMpSignature(payload: string, signature: string, requestId: string): boolean {
-  // signature = "ts=1234567890,v1=abcdef..."
-  const parts = signature.split(',').reduce((acc, part) => {
+function verifyMpSignature(payload: string, signatureHeader: string, requestIdHeader: string): boolean {
+  // signatureHeader = "ts=1234567890,v1=abcdef..."
+  const parts = signatureHeader.split(',').reduce((acc, part) => {
     const [k, v] = part.split('=')
     acc[k] = v
     return acc
-  }, {})
+  }, {} as Record<string, string>)
   
   const ts = parts.ts
   const v1 = parts.v1
+  if (!ts || !v1) return false
   
-  // Manifest = `id:${requestId};request-id:${requestId};ts:${ts};`
-  const manifest = `id:${paymentId};request-id:${requestId};ts:${ts};`
+  // Extraer paymentId del payload JSON
+  let paymentId: string
+  try {
+    paymentId = JSON.parse(payload).data?.id?.toString() ?? ''
+  } catch {
+    return false
+  }
+  if (!paymentId) return false
+  
+  // Manifest según docs MP: `id:${paymentId};request-id:${requestId};ts:${ts};`
+  const manifest = `id:${paymentId};request-id:${requestIdHeader};ts:${ts};`
   const expected = crypto.createHmac('sha256', MP_WEBHOOK_SECRET)
     .update(manifest)
     .digest('hex')
   
-  return crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(expected))
+  return crypto.timingSafeEqual(Buffer.from(v1, 'hex'), Buffer.from(expected, 'hex'))
 }
 ```
 
