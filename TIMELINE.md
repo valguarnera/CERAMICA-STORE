@@ -1,9 +1,9 @@
 # CERAMICA-STORE — Development Timeline
 
-> **Estado actual:** Fase 4 — COMPLETADA
-> **Próxima fase:** Fase 5 — Storefront / Catálogo
+> **Estado actual:** Fase 5 — COMPLETADA
+> **Próxima fase:** Fase 6 — Checkout / Mercado Pago
 > **Fuente de verdad:** `SPEC/`
-> **Última actualización:** 2026-08-23
+> **Última actualización:** 2026-08-24
 
 ---
 
@@ -26,9 +26,9 @@ Este archivo no reemplaza la SPEC: indica **en qué fase estamos, qué se hizo y
 
 ---
 
-# 2. Reglas de trabajo
+## 2. Reglas de trabajo
 
-## 2.1 SPEC First
+### 2.1 SPEC First
 
 Antes de implementar una funcionalidad:
 
@@ -45,7 +45,7 @@ Antes de implementar una funcionalidad:
 
 ---
 
-## 2.2 No modificar fases cerradas
+### 2.2 No modificar fases cerradas
 
 Una fase marcada como:
 
@@ -66,7 +66,7 @@ Si encuentra un problema:
 
 ---
 
-## 2.3 Respetar el alcance
+### 2.3 Respetar el alcance
 
 Cada fase tiene un objetivo específico.
 
@@ -83,7 +83,7 @@ Mientras se trabaja en Fase 5, no comenzar espontáneamente con:
 
 ---
 
-## 2.4 Tests como contrato
+### 2.4 Tests como contrato
 
 Una fase no está terminada simplemente porque el código compile.
 
@@ -103,7 +103,7 @@ Fase completa
 
 ---
 
-# 3. Estado general
+## 3. Estado general
 
 | Fase | Área                                 | Estado       |
 | ---- | ------------------------------------ | ------------ |
@@ -112,8 +112,8 @@ Fase completa
 | 2    | Persistencia y base de datos         | ✅ COMPLETADA |
 | 3    | Carrito y pedidos                    | ✅ COMPLETADA |
 | 4    | Autenticación y servicios de dominio | ✅ COMPLETADA |
-| 5    | Storefront / Catálogo                | ⏳ PRÓXIMA    |
-| 6    | Checkout / Mercado Pago              | ⏳ PENDIENTE  |
+| 5    | Storefront / Catálogo                | ✅ COMPLETADA |
+| 6    | Checkout / Mercado Pago              | ⏳ PRÓXIMA    |
 | 7    | Backoffice ADMIN                     | ⏳ PENDIENTE  |
 | 8    | Seguridad / Hardening                | ⏳ PENDIENTE  |
 | 9    | Testing integral                     | ⏳ PENDIENTE  |
@@ -123,21 +123,21 @@ Fase completa
 
 ---
 
-# 4. Fase 0 — Especificación
+## 4. Fase 0 — Especificación
 
-## Estado
+### Estado
 
 `✅ COMPLETADA`
 
-## Objetivo
+### Objetivo
 
 Definir el comportamiento esperado del sistema antes de implementar.
 
-## Resultado
+### Resultado
 
 Se creó la especificación técnica completa bajo `SPEC/`.
 
-Incluye:
+Se definieron:
 
 * requisitos;
 * casos de uso;
@@ -156,41 +156,35 @@ Incluye:
 
 Actualmente existen aproximadamente **42 documentos de SPEC**.
 
-## Criterio de finalización
+### Criterio de finalización
 
 La funcionalidad requerida debe estar definida antes de su implementación.
 
 ---
 
-# 5. Fase 1 — Arquitectura y dominio
+## 5. Fase 1 — Arquitectura y dominio
 
-## Estado
+### Estado
 
 `✅ COMPLETADA`
 
-## Objetivo
+### Objetivo
 
 Establecer las reglas estructurales y de negocio del sistema.
 
-## Incluye
+### Se definió
 
-* arquitectura;
-* dominio;
-* entidades;
-* servicios;
-* invariantes;
-* casos de uso;
-* separación de responsabilidades;
-* modelo de datos;
-* autenticación;
-* carrito;
-* pedidos;
-* stock;
-* pagos.
+* arquitectura general (capas: domain, infrastructure, presentation);
+* dominio: entidades, value objects, servicios puros;
+* invariantes de negocio (INV‑001 a INV‑013);
+* casos de uso (UC‑001 a UC‑018);
+* separación de responsabilidades (sin dependencias de UI, framework, infraestructura, BD, proveedores externos);
+* modelo de datos preliminar;
+* estrategias de autenticación, carrito, pedidos, stock, pagos.
 
-## Principio
+### Principio
 
-Las reglas de negocio deben permanecer independientes de:
+Las reglas de negocio permanecen independientes de:
 
 * UI;
 * framework;
@@ -200,30 +194,29 @@ Las reglas de negocio deben permanecer independientes de:
 
 ---
 
-# 6. Fase 2 — Persistencia y base de datos
+## 6. Fase 2 — Persistencia y base de datos
 
-## Estado
+### Estado
 
 `✅ COMPLETADA`
 
-## Objetivo
+### Objetivo
 
 Implementar la persistencia SQLite definida en la SPEC.
 
-## Verificado
+### Se implementó y verificó
 
-* tablas;
-* relaciones;
-* foreign keys;
-* índices;
-* `CHECK constraints`;
-* triggers;
-* integridad referencial;
-* compatibilidad con el modelo definido.
+* creación de todas las tablas (`users`, `sessions`, `products`, `orders`, `order_items`, `payments`, `webhooks_log`, `settings`);
+* relaciones y foreign keys con `ON DELETE CASCADE` donde corresponde;
+* índices definidos en la SPEC;
+* `CHECK constraints` (`stock >= 0`, `price_cents > 0`, `active IN (0,1)`, `revoked IN (0,1)`, estados válidos);
+* triggers para `updated_at` en todas las tablas mutables;
+* integridad referencial completa;
+* compatibilidad con el modelo de datos definido (Kysely + `Database` interface) para permitir migración futura a PostgreSQL sin reescribir reglas de negocio.
 
-## Estrategia futura
+### Estrategia futura
 
-La arquitectura debe permitir:
+La arquitectura permite:
 
 ```text
 SQLite
@@ -231,64 +224,60 @@ SQLite
 PostgreSQL
 ```
 
-sin reescribir las reglas de negocio.
+sin modificar la capa de dominio.
 
 ---
 
-# 7. Fase 3 — Carrito y pedidos
+## 7. Fase 3 — Carrito y pedidos
 
-## Estado
+### Estado
 
 `✅ COMPLETADA`
 
-## Objetivo
+### Objetivo
 
 Implementar las reglas centrales relacionadas con compras y pedidos.
 
-## Carrito
+### Carrito — se implementó
 
-Implementado:
+* cookie firmada (HMAC‑SHA256) como única fuente de verdad;
+* estructura `{ version, items[] }` con `version` para optimistic locking;
+* validación de stock y precio en cada mutación (`CartService.addItem`, `updateQuantity`, `validateAndHydrate`);
+* snapshot de precio (`unitPriceCents`) al agregar;
+* límite de 50 ítems distintos;
+* persistencia entre recargas y navegación;
+* API routes: `GET /api/cart`, `POST /api/cart/items`, `PATCH /api/cart/items/:productId`, `DELETE /api/cart/items/:productId`, `DELETE /api/cart`.
 
-* cookie firmada;
-* fuente única de verdad;
-* validación;
-* cantidades;
-* actualización;
-* eliminación;
-* persistencia.
+### Pedidos — se implementó
 
-## Pedidos
+* creación atómica de `Order` + `order_items` + decremento de `stock` en transacción (`OrderService.createOrderFromCart`);
+* machine de estados (`PENDING → PAID | CANCELLED | EXPIRED → REFUNDED | SHIPPED`);
+* reglas de stock: descuento solo al crear orden, restitución solo en `CANCELLED`/`EXPIRED`/`REFUNDED`;
+* invariantes INV‑004, INV‑005 respetadas;
+* relaciones necesarias (`orders ↔ order_items ↔ products`, `orders ↔ payments`).
 
-Implementado:
-
-* creación;
-* estados;
-* reglas de stock;
-* invariantes;
-* relaciones necesarias.
-
-## Tests existentes
+### Tests existentes
 
 ```text
 Cart   → 14 tests
 Order  → 5 tests
 ```
 
+Todos pasan (19/19).
+
 ---
 
-# 8. Fase 4 — Autenticación y servicios de dominio
+## 8. Fase 4 — Autenticación y servicios de dominio
 
-## Estado
+### Estado
 
 `✅ COMPLETADA`
 
-## Objetivo
+### Objetivo
 
 Implementar autenticación, sesiones y protección de áreas administrativas.
 
-## Auth Routes
-
-Implementadas:
+### Auth Routes — se implementaron
 
 ```text
 POST /api/auth/register
@@ -298,31 +287,17 @@ POST /api/auth/logout
 
 Con:
 
-* Zod;
+* validación Zod (email, password ≥8, name);
 * bcrypt cost 12;
-* rate limiting;
-* HttpOnly cookies.
+* rate limiting (register 3/min/IP, login 5/min/IP, logout 30/min/session);
+* cookies `session_id` HttpOnly, Secure, SameSite=Lax, 7 días.
 
-## Session Service
+### Session Service — se implementó
 
-Implementado:
+* `createSession()`, `validateSession()`, `revokeSession()`, `cleanupExpiredSessions()`;
+* validación exige `revoked = 0` **AND** `expires_at > now`.
 
-```text
-createSession()
-validateSession()
-revokeSession()
-cleanupExpiredSessions()
-```
-
-La validación verifica:
-
-```text
-revoked = 0
-AND
-expires_at > now
-```
-
-## Middleware
+### Middleware — se implementó
 
 Protege:
 
@@ -331,39 +306,19 @@ Protege:
 /api/admin/*
 ```
 
-Y exige:
+Exige `role === 'ADMIN'` y setea headers `x-user-id`, `x-user-role`, `x-user-email`.
 
-```text
-role === 'ADMIN'
-```
+### Bootstrap ADMIN — se implementó de forma atómica
 
-Además establece los headers `x-user-*`.
-
-## Bootstrap ADMIN
-
-Se implementó creación atómica del primer ADMIN mediante:
+Transacción `BEGIN IMMEDIATE` con:
 
 ```sql
-BEGIN IMMEDIATE
+CASE WHEN (SELECT COUNT(*) FROM users) = 0 THEN 'ADMIN' ELSE 'CUSTOMER' END
 ```
 
-y:
+Garantiza **INV‑002** (único ADMIN de bootstrap) incluso bajo concurrencia.
 
-```sql
-CASE
-    WHEN (SELECT COUNT(*) FROM users) = 0
-        THEN 'ADMIN'
-    ELSE 'CUSTOMER'
-END
-```
-
-Esto garantiza `INV-002`:
-
-> Existe un único ADMIN de bootstrap.
-
-La implementación es segura incluso frente a registros concurrentes.
-
-## Tests
+### Tests
 
 Actualmente:
 
@@ -376,224 +331,186 @@ Migrations  14
 TOTAL       43
 ```
 
-**43/43 tests pasando.**
+**43/43 tests pasando**, incluido test de concurrencia para el bootstrap ADMIN.
 
-Incluye test de concurrencia para el bootstrap ADMIN.
+### Deuda técnica conocida
 
-## Deuda técnica conocida
+La SPEC define rate limiting con store SQLite (`rate‑limiter‑flexible`); la implementación actual usa un `Map` en memoria (aceptable para MVP single‑instance). Queda registrada como deuda técnica.
 
-La SPEC define:
+### Fuera del alcance
 
-```text
-SQLite + rate-limiter-flexible
-```
-
-La implementación actual utiliza:
-
-```text
-In-memory Map
-```
-
-Esto es aceptable para el MVP single-instance, pero debe registrarse como deuda técnica.
-
-## Fuera del alcance
-
-No corresponden a esta fase:
-
-```text
-GET /api/orders
-GET /api/orders/:id
-```
-
-Estas rutas corresponden a fases Storefront/Admin.
-
-El cron de limpieza de sesiones también queda como tarea operacional futura.
+* `GET /api/orders` y `GET /api/orders/:id` (corresponden a fases Storefront/Admin).
+* Cron de limpieza de sesiones (tarea operacional futura).
 
 ---
 
-# 9. Fase 5 — Storefront / Catálogo
+## 9. Fase 5 — Storefront / Catálogo
 
-## Estado
+### Estado
+
+`✅ COMPLETADA`
+
+### Objetivo
+
+Construir la experiencia pública de compra (catálogo, detalle, carrito UI).
+
+### Se implementó completamente
+
+#### Product API
+
+* `GET /api/products?page=&limit=&q=&sort=` → lista paginada, búsqueda case‑insensitive (nombre y descripción), 5 ordenamientos (`price_asc`, `price_desc`, `name_asc`, `name_desc`, `-created_at` por defecto).
+* `GET /api/products/[slug]` → detalle completo, 404 si no existe o `active = 0`.
+
+#### Storefront (App Router, route group `(store)`)
+
+* **Layout** (`src/app/(store)/layout.tsx`): `Header`, `CartDrawer`, `ToastProvider`.
+* **Home** (`/`): landing con hero y 8 productos destacados (más recientes).
+* **Catálogo** (`/productos`): `SearchFilter` (texto + sort), `ProductGrid`, `Pagination`.
+* **Detalle de producto** (`/productos/[slug]`): galería, descripción, metadata, selector de cantidad, botón “Agregar al carrito”, JSON‑LD `Product` + Open Graph.
+* **Carrito** (`/carrito`) y **CartDrawer** (slide‑over): misma fuente de verdad, controles de cantidad, total, “Vaciar”, link a checkout.
+
+#### Carrito en cliente
+
+* Zustand store (`useCart`) **sin persistencia** (`persist` removido); actúa como caché de presentación en memoria.
+* Estado inicial hidratado desde `GET /api/cart` (cookie firmada).
+* Todas las mutaciones llaman a la API y reemplazan el estado local con la respuesta del servidor.
+* Cookie firmada (`CartService`) sigue siendo la **única fuente de verdad**.
+
+#### Formato de moneda
+
+* `formatARS(cents)` → locale `es‑AR` (`$ 1.234,56`).
+
+#### SEO / JSON‑LD
+
+* `generateProductJsonLd` inyectado en `<script type="application/ld+json">` en página de detalle.
+* `generateProductListJsonLd` disponible para listados.
+
+#### UI responsive
+
+* Tailwind + shadcn/ui; breakpoints `sm:`, `lg:`; estados vacío, carga y error cubiertos.
+
+#### Tests
+
+* `product.test.ts` – 8 tests (paginación, búsqueda, 5 sorts, filtro `active`, slug 404).
+* Suite completa: **51 tests** (14 cart + 5 order + 10 auth + 14 migrations + 8 product) – todos pasan.
+
+#### Lint & Typecheck
+
+* `npm run lint` → ✅ sin warnings.
+* `npm run typecheck` → ✅ sin errores.
+
+#### Invariantes verificadas
+
+* **INV‑004** – stock nunca negativo (validación en carrito, descuento real solo en orden).
+* **INV‑005** – stock descuenta solo al crear Order; restitución solo en estados terminales.
+* Snapshot de precio conservado en carrito.
+* 404 correcto en producto inactivo/inexistente.
+
+#### Deudas técnicas registradas
+
+* Rate limiting aún en `Map` en memoria (pendiente SQLite store – Fase 8).
+* Subida de imágenes no implementada (placeholder) – Fase 7.
+* Flakiness ocasional de `better‑sqlite3` en teardown paralelo de tests (documentado, no afecta lógica).
+
+---
+
+## 10. Fase 6 — Checkout / Mercado Pago
+
+### Estado
 
 `⏳ PRÓXIMA`
 
-## Objetivo
-
-Construir la experiencia pública de compra.
-
-## Flujo objetivo
-
-```text
-Visitante
-   ↓
-Catálogo
-   ↓
-Producto
-   ↓
-Agregar al carrito
-   ↓
-Modificar carrito
-   ↓
-Checkout
-```
-
-## Implementar
-
-* catálogo;
-* listado de productos;
-* detalle de producto;
-* disponibilidad;
-* carrito UI;
-* cantidades;
-* eliminación;
-* validaciones;
-* API routes correspondientes;
-* manejo de errores.
-
-## Debe respetar
-
-```text
-SPEC/requirements/
-SPEC/architecture/cart-model.md
-SPEC/architecture/stock-rules.md
-```
-
-## Criterio de finalización
-
-El usuario debe poder recorrer el catálogo y administrar su carrito desde el storefront sin romper las invariantes existentes.
-
----
-
-# 10. Fase 6 — Checkout / Mercado Pago
-
-## Estado
-
-`⏳ PENDIENTE`
-
-## Objetivo
+### Objetivo
 
 Implementar el proceso completo de checkout y pago.
 
-## Flujo
+### Partida (capacidades ya existentes al cierre de Fase 5)
 
-```text
-Carrito
-   ↓
-Checkout
-   ↓
-Crear pedido
-   ↓
-Mercado Pago
-   ↓
-Pago
-   ↓
-Webhook
-   ↓
-Actualizar pedido
-```
+* `ProductService` – listado, detalle, stock, precio.
+* `CartService` – cookie firmada, validación, snapshot de precios, `validateAndHydrate`.
+* Cart API (`GET/POST/PATCH/DELETE /api/cart*`) – funcional.
+* Carrito en cliente (`useCart`, `CartDrawer`, `/carrito`) – operativo.
+* `OrderService.createOrderFromCart` – creación atómica de orden + items + decremento de stock.
+* Autenticación (registro, login, logout, middleware ADMIN, bootstrap ADMIN).
+* Storefront completo (catálogo, detalle, carrito UI).
 
-## Implementar
+### Alcance de la Fase 6 (no repetir lo anterior)
 
-* checkout;
-* creación de preferencia;
-* integración Mercado Pago;
-* webhook;
-* validación;
-* idempotencia;
-* estados de pago;
-* errores;
-* escenarios definidos en la SPEC.
+* Checkout: formulario de datos de envío/facturación, creación de orden `PENDING`.
+* Preferencia Mercado Pago (multi‑item) → redirect a Checkout Pro.
+* Webhook MP (`/api/webhooks/mercadopago`): verificación HMAC, idempotencia (`mp_payment_id` UNIQUE + `webhooks_log`), actualización de `Order`/`Payment` solo vía webhook validado.
+* Páginas de resultado (`/checkout/success`, `/checkout/failure`, `/checkout/pending`).
+* Sincronización manual desde backoffice (botón “Sincronizar” → consulta MP API).
+* Tests de idempotencia, webhooks duplicados, fuera de orden, transiciones de estado.
 
-## Regla crítica
+### Regla crítica
 
-El navegador nunca debe considerarse autoridad sobre el resultado del pago.
-
-La fuente de verdad debe ser:
+El navegador nunca es autoridad sobre el resultado del pago. Fuente de verdad:
 
 ```text
 Mercado Pago
-   ↓
-Webhook
-   ↓
+  ↓
+Webhook (verificado)
+  ↓
 Backend
-   ↓
+  ↓
 Pedido
 ```
 
 ---
 
-# 11. Fase 7 — Backoffice ADMIN
+## 11. Fase 7 — Backoffice ADMIN
 
-## Estado
+### Estado
 
 `⏳ PENDIENTE`
 
-## Objetivo
+### Objetivo
 
 Crear la interfaz administrativa de la tienda.
 
-## Áreas
+### Áreas
 
 ```text
 ADMIN
- ├── Productos
- ├── Stock
- ├── Pedidos
- ├── Usuarios
- └── Configuración
+  ├── Productos
+  ├── Stock
+  ├── Pedidos
+  ├── Usuarios
+  └── Configuración
 ```
 
-## Incluir
+### Incluir (roadmap)
 
-* gestión de productos;
-* stock;
-* pedidos;
-* consulta de pedidos;
-* detalle de pedidos;
-* configuración;
-* autorización ADMIN.
+* CRUD productos (crear, editar, activar/desactivar, subir imágenes – fase 7).
+* Gestión de stock (ajustes manuales, historial).
+* Listado y detalle de pedidos con filtros; acciones: cancelar, reembolsar, marcar enviado, sincronizar MP.
+* Gestión de usuarios (ver, cambiar rol – solo ADMIN).
+* Configuración de tienda (nombre, moneda ARS fija, credenciales MP, proveedor email).
+* Autorización ADMIN (middleware ya existente).
 
-## Casos relacionados
+### Casos relacionados (ya definidos)
 
-Entre otros:
-
-```text
-UC-010 — Mis pedidos
-UC-011 — Detalle de pedido
-```
+* UC‑010 — Mis pedidos (cliente).
+* UC‑011 — Detalle de pedido (cliente).
 
 ---
 
-# 12. Fase 8 — Seguridad / Hardening
+## 12. Fase 8 — Seguridad / Hardening
 
-## Estado
+### Estado
 
 `⏳ PENDIENTE`
 
-## Objetivo
+### Objetivo
 
 Realizar una revisión integral de seguridad.
 
-## Revisar
+### Revisar
 
-* autenticación;
-* autorización;
-* sesiones;
-* cookies;
-* CSP;
-* CSRF cuando corresponda;
-* XSS;
-* SQL injection;
-* validación de inputs;
-* headers;
-* rate limiting;
-* webhooks;
-* idempotencia;
-* secretos;
-* logs;
-* mensajes de error.
+* autenticación; autorización; sesiones; cookies; CSP; CSRF cuando corresponda; XSS; SQL injection; validación de inputs; headers; rate limiting; webhooks; idempotencia; secretos; logs; mensajes de error.
 
-## También
+### También
 
 Verificar:
 
@@ -605,17 +522,17 @@ No datos sensibles en logs
 
 ---
 
-# 13. Fase 9 — Testing integral
+## 13. Fase 9 — Testing integral
 
-## Estado
+### Estado
 
 `⏳ PENDIENTE`
 
-## Objetivo
+### Objetivo
 
 Validar los flujos completos del sistema.
 
-## Flujo principal
+### Flujo principal
 
 ```text
 Registro
@@ -637,9 +554,9 @@ Pedido
 ADMIN
 ```
 
-## Casos críticos
+### Casos críticos
 
-### Concurrencia
+#### Concurrencia
 
 * registros simultáneos;
 * compras simultáneas;
@@ -647,45 +564,45 @@ ADMIN
 * webhooks duplicados;
 * operaciones simultáneas sobre el mismo pedido.
 
-### Property-based testing
+#### Property‑based testing
 
 Utilizar `fast-check` cuando aporte valor real.
 
 ---
 
-# 14. Fase 10 — Deploy / Producción
+## 14. Fase 10 — Deploy / Producción
 
-## Estado
+### Estado
 
 `⏳ PENDIENTE`
 
-## Objetivo
+### Objetivo
 
 Preparar el sistema para deployment reproducible.
 
-## Flujo esperado
+### Flujo esperado
 
 ```text
 Git
- ↓
+  ↓
 Coolify
- ↓
+  ↓
 Docker build
- ↓
+  ↓
 Container
- ↓
+  ↓
 Persistent Volume
- ↓
+  ↓
 SQLite
 ```
 
-## Persistencia
+### Persistencia
 
 ```text
 /app/data
 ```
 
-## Secrets
+### Secrets
 
 ```text
 MP_ACCESS_TOKEN
@@ -693,7 +610,7 @@ MP_WEBHOOK_SECRET
 JWT_SECRET
 ```
 
-## Health check
+### Health check
 
 ```text
 GET /api/health
@@ -701,31 +618,31 @@ GET /api/health
 
 ---
 
-# 15. Fase 11 — Backups / Operación
+## 15. Fase 11 — Backups / Operación
 
-## Estado
+### Estado
 
 `⏳ PENDIENTE`
 
-## Objetivo
+### Objetivo
 
 Garantizar recuperación ante pérdida o corrupción de datos.
 
-## Implementar
+### Implementar
 
 ```text
 SQLite
- ↓
+  ↓
 Backup periódico
- ↓
+  ↓
 Verificación
- ↓
+  ↓
 Retención
- ↓
+  ↓
 Restauración probada
 ```
 
-## Principio
+### Principio
 
 > Un backup que nunca fue restaurado exitosamente es una esperanza, no un backup verificado.
 
@@ -740,23 +657,23 @@ También deberá contemplarse:
 
 ---
 
-# 16. Fase 12 — Migración PostgreSQL
+## 16. Fase 12 — Migración PostgreSQL
 
-## Estado
+### Estado
 
 `⏳ FUTURA`
 
-## Objetivo
+### Objetivo
 
 Migrar de SQLite a PostgreSQL solamente cuando exista una necesidad real.
 
-## Estrategia
+### Estrategia
 
 ```text
 SQLite
-   ↓
+  ↓
 crecimiento / necesidad real
-   ↓
+  ↓
 PostgreSQL
 ```
 
@@ -766,13 +683,13 @@ La migración debe seguir:
 SPEC/architecture/migration-strategy.md
 ```
 
-## Regla
+### Regla
 
 La migración de base de datos no debe modificar las reglas de negocio.
 
 ---
 
-# 17. Criterio general de finalización
+## 17. Criterio general de finalización
 
 Una fase puede marcarse:
 
@@ -791,17 +708,17 @@ solamente cuando:
 
 ---
 
-# 18. Estado actual
+## 18. Estado actual
 
 ```text
-                 CERAMICA-STORE
+                  CERAMICA-STORE
 
 FASE 0  SPEC                    ██████████ ✅
 FASE 1  Arquitectura            ██████████ ✅
 FASE 2  Persistencia            ██████████ ✅
 FASE 3  Carrito / Pedidos       ██████████ ✅
-FASE 4  Auth / Sesiones          ██████████ ✅
-FASE 5  Storefront                     ░░ ⏳
+FASE 4  Auth / Sesiones         ██████████ ✅
+FASE 5  Storefront              ██████████ ✅
 FASE 6  Checkout / MP                  ░░ ⏳
 FASE 7  Backoffice                     ░░ ⏳
 FASE 8  Security                       ░░ ⏳
@@ -813,30 +730,29 @@ FASE 12 PostgreSQL                     ░░ ⏳
 
 ---
 
-# 19. Próximo trabajo
+## 19. Próximo trabajo
 
-## FASE 5 — STOREFRONT / CATÁLOGO
+### FASE 6 — CHECKOUT / MERCADO PAGO
 
 El próximo agente debe comenzar por:
 
 1. Leer `TIMELINE.md`.
-2. Confirmar que Fase 4 permanece completa.
-3. Leer los documentos de `SPEC/` relacionados con Storefront.
+2. Confirmar que Fases 1‑5 permanecen completas.
+3. Leer los documentos de `SPEC/` relacionados con Checkout y MP (`payment-model.md`, `mp-integration.md`, `UC-005`, `UC-006`, `UC-007`, `UC-017`).
 4. Identificar los casos de uso correspondientes.
-5. Revisar el código existente antes de modificarlo.
-6. Crear un plan de implementación.
-7. Implementar únicamente el alcance de Fase 5.
-8. Ejecutar los tests existentes.
-9. Agregar tests nuevos necesarios.
-10. Verificar invariantes.
-11. No modificar funcionalidades de fases cerradas sin justificación.
-12. Informar exactamente qué se hizo y qué queda pendiente.
+5. Revisar el código existente (ProductService, CartService, Cart API, OrderService, autenticación, Storefront) **sin reimplementar**.
+6. Crear un plan de implementación limitado al alcance de Fase 6.
+7. Implementar únicamente checkout, preferencia MP, webhook, páginas de resultado y sincronización.
+8. Ejecutar los tests existentes y agregar los nuevos (idempotencia, webhooks, transiciones).
+9. Verificar invariantes INV‑006 a INV‑013.
+10. No modificar funcionalidades de fases cerradas sin justificación.
+11. Informar exactamente qué se hizo y qué queda pendiente.
 
-**No avanzar a Fase 6 hasta que Fase 5 cumpla sus criterios de finalización.**
+**No avanzar a Fase 7 hasta que Fase 6 cumpla sus criterios de finalización.**
 
 ---
 
-# 20. Regla final para agentes
+## 20. Regla final para agentes
 
 > **No programes a ciegas.**
 >
