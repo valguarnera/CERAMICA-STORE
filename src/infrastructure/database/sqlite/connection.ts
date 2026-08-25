@@ -8,9 +8,7 @@ import fs from 'fs';
 let dbInstance: Kysely<DatabaseType> | null = null;
 let sqliteInstance: BetterSqlite3Database | null = null;
 
-export function getDatabase(): Kysely<DatabaseType> {
-  if (dbInstance) return dbInstance;
-
+function createDatabase(): Kysely<DatabaseType> {
   const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'ceramica.db');
   
   const dataDir = path.dirname(dbPath);
@@ -23,10 +21,14 @@ export function getDatabase(): Kysely<DatabaseType> {
   sqliteInstance.pragma('foreign_keys = ON');
   sqliteInstance.pragma('busy_timeout = 5000');
 
-  dbInstance = new Kysely<DatabaseType>({
+  return new Kysely<DatabaseType>({
     dialect: new SqliteDialect({ database: sqliteInstance }),
   });
+}
 
+export function getDatabase(): Kysely<DatabaseType> {
+  if (dbInstance) return dbInstance;
+  dbInstance = createDatabase();
   return dbInstance;
 }
 
@@ -42,5 +44,14 @@ export function closeDatabase(): void {
   if (sqliteInstance) {
     sqliteInstance.close();
     sqliteInstance = null;
+  }
+}
+
+if (process.env.NODE_ENV === 'development' && typeof module !== 'undefined') {
+  const hotModule = module as unknown as { hot?: { dispose: (fn: () => void) => void } };
+  if (hotModule.hot) {
+    hotModule.hot.dispose(() => {
+      closeDatabase();
+    });
   }
 }

@@ -3,7 +3,7 @@
 > **Estado actual:** Fase 6 — COMPLETADA
 > **Próxima fase:** Fase 7 — Backoffice ADMIN
 > **Fuente de verdad:** `SPEC/`
-> **Última actualización:** 2026-08-24
+> **Última actualización:** 2026-08-25
 
 ---
 
@@ -443,6 +443,7 @@ Implementar el proceso completo de checkout y pago.
 * **Polling de resultado**: página `/checkout/result` consulta `GET /api/checkout/status/:orderId` cada 3 s (máx 30 s) y muestra confirmación, “procesando” o “rechazado”.
 * **Endpoint de status**: `GET /api/checkout/status/[orderId]` devuelve estado actual de Order y Payment.
 * **Corrección de ruta dinámica**: eliminado directorio duplicado `\[orderId\]`; ruta canónica `[orderId]`.
+* **Auth UI**: páginas `/login` y `/registro` creadas (`src/app/(store)/login/page.tsx`, `src/app/(store)/registro/page.tsx`), reutilizando APIs `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/logout`. Header actualizado.
 * **Invariantes respetadas**: INV‑006 (precio server‑side), INV‑007 (PAID solo por webhook), INV‑008 (idempotencia webhook), INV‑009 (transiciones unidireccionales), INV‑010 (snapshot histórico), INV‑011 (admin no setea estado), INV‑012/013 (conciliación `mp_payment_id` / `external_reference`).
 * **Tests**: 3 tests unitarios en `payment.test.ts` (crear preference, idempotencia webhook, mapeo approved→PAID). Suite completa **54 tests** pasando (cart, order, auth, migrations, product, payment).
 * **Lint / Typecheck / Build**: `npm run lint` ✅, `npm run typecheck` ✅, `npm run build` ✅ (página `/checkout/result` marcada Dynamic).
@@ -451,7 +452,14 @@ Implementar el proceso completo de checkout y pago.
 ### Deuda técnica registrada
 
 * Rate limiting sigue en `Map` memoria (Fase 8).
-* Flakiness ocasional de `better‑sqlite3` en teardown paralelo de tests (documentado).
+* **better‑sqlite3 HMR crash (dev)**: observado crash nativo intermitente durante `npm run dev` con recarga caliente:
+  ```text
+  node::RemoveEnvironmentCleanupHook
+  Statement::~Statement()
+  better_sqlite3.node
+  Assertion failed: (env) != nullptr
+  ```
+  Causa: teardown de addon nativo durante HMR (Node ≥20 + better‑sqlite3 11.x). No reproducible de forma determinista en las corridas finales. Se añadió `module.hot.dispose(closeDatabase)` en `connection.ts` como mitigación. **No afecta producción (`next start`), build ni tests** (teardown ordenado en `afterAll`).
 * Refund implementado con fetch genérico; cuando se use SDK oficial se simplificará.
 
 ### Regla crítica
@@ -467,6 +475,12 @@ Backend
   ↓
 Pedido
 ```
+
+### Estado de Docker (nativo addon)
+
+* **Build**: `docker compose build --no-cache` ✅ (multi‑stage Debian→Alpine con `npm rebuild better-sqlite3`).
+* **Runtime**: mejor‑sqlite3 compila en Alpine/musl, pero los símbolos V8 no coinciden (headers Node 24 vs runtime Node 20) → `fcntl64: symbol not found` / símbolos V8 missing.
+* **Conclusión**: No mezclar artefactos nativos entre entornos (Debian/glibc builder vs Alpine/musl runtime). Para Docker de producción usar entorno consistente (Debian `node:20-slim` en builder y runner, o compilar dentro del mismo Alpine target). No declarar "Docker producción OK" sin prueba real de `docker compose up` con better‑sqlite3 funcional.
 
 ---
 

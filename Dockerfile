@@ -1,25 +1,33 @@
 # syntax=docker/dockerfile:1.4
 
-# ===== Base =====
+# ===== Base (Alpine for runtime) =====
 FROM node:20-alpine AS base
 WORKDIR /app
 
-# ===== Dependencies (all, including dev) =====
-FROM base AS deps
+# ===== Dependencies (Debian for building native modules) =====
+FROM node:20 AS deps
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
-# ===== Development =====
-FROM deps AS development
+# ===== Development (Alpine runtime with copied node_modules) =====
+FROM base AS development
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+RUN npm install @next/swc-linux-x64-musl --ignore-scripts --save-dev && \
+    npm rebuild better-sqlite3
 COPY . .
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # ===== Builder (production build) =====
-FROM deps AS builder
+FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
@@ -38,6 +46,9 @@ RUN addgroup -g 1001 -S nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy node_modules for runtime (includes native modules)
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Data volume (SQLite + backups) - empty dir, will be mounted at runtime
 # COPY --from=builder --chown=nextjs:nodejs /app/data ./data

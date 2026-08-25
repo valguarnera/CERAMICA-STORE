@@ -21,6 +21,12 @@ export function Header() {
           <Link href="/checkout" className="hover:underline">
             Checkout
           </Link>
+          <Link href="/login" className="hover:underline">
+            Iniciar sesión
+          </Link>
+          <Link href="/registro" className="hover:underline">
+            Registrarse
+          </Link>
         </nav>
 
         <Link

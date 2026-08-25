@@ -1,22 +1,24 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { Kysely, SqliteDialect } from 'kysely';
 import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from '@/domain/db';
 import fs from 'fs';
 import path from 'path';
 
+let testSqlite: Database | null = null;
+
 function createTestDb(): Kysely<DatabaseType> {
-  const sqlite = new Database(':memory:');
-  sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('foreign_keys = ON');
+  testSqlite = new Database(':memory:');
+  testSqlite.pragma('journal_mode = WAL');
+  testSqlite.pragma('foreign_keys = ON');
 
   const db = new Kysely<DatabaseType>({
-    dialect: new SqliteDialect({ database: sqlite }),
+    dialect: new SqliteDialect({ database: testSqlite }),
   });
 
   const migrationPath = path.join(__dirname, 'migrations', '001_initial_schema.sql');
   const sql = fs.readFileSync(migrationPath, 'utf-8');
-  sqlite.exec(sql);
+  testSqlite.exec(sql);
 
   return db;
 }
@@ -30,6 +32,10 @@ describe('Database Foundation', () => {
 
   afterAll(async () => {
     await db.destroy();
+    if (testSqlite) {
+      testSqlite.close();
+      testSqlite = null;
+    }
   });
 
   beforeEach(async () => {

@@ -1,6 +1,18 @@
 # CERAMICA-STORE
 
-Tienda online de cerámica artesanal - Phase 2: Authentication + Domain Services
+Tienda online de cerámica artesanal.
+
+## Estado actual
+
+**Fase 6 — Checkout / Mercado Pago: COMPLETADA** ✅
+- Checkout, webhook MP, polling de resultado, idempotencia
+- Auth UI: `/login` y `/registro` funcionales
+- 54 tests pasando, lint/typecheck/build ✅
+- Próxima: Fase 7 — Backoffice ADMIN
+
+⚠️ **Deuda técnica conocida**: `better-sqlite3` puede crashear en `npm run dev` durante HMR (crash nativo intermitente, no afecta producción/build/tests). Ver `TIMELINE.md`.
+
+⚠️ **Docker + native addon**: `better-sqlite3` requiere compilar en entorno consistente (builder y runner mismo libc). Ver `TIMELINE.md`.
 
 ## Requisitos
 
@@ -10,7 +22,7 @@ Tienda online de cerámica artesanal - Phase 2: Authentication + Domain Services
 
 ## Instalación
 
-### Con Docker (Recomendado)
+### Con Docker (Recomendado para producción)
 
 ```bash
 # Clonar el repositorio
@@ -26,6 +38,8 @@ docker compose up --build
 
 # La aplicación estará disponible en http://localhost:3000
 ```
+
+> **Nota**: El build Docker usa multi-stage (Debian para compilar, Alpine para runtime). Para producción se recomienda usar `node:20-slim` (Debian) consistentemente en builder y runner para evitar problemas con `better-sqlite3` nativo.
 
 ### Desarrollo Local
 
@@ -75,7 +89,7 @@ docker compose up --build
 ```
 
 Esto:
-1. Construye la imagen multi-stage (builder + runner)
+1. Construye la imagen multi-stage (builder Debian + runner Alpine)
 2. Crea volúmenes persistentes para datos y backups
 3. Inicia la aplicación en puerto 3000
 
@@ -98,6 +112,14 @@ Los datos se guardan en volúmenes Docker:
 - `ceramica-backups`: Backups automáticos (`/app/backups/`)
 
 Los datos persisten entre reinicios del contenedor.
+
+### ⚠️ Consideración: better-sqlite3 (addon nativo)
+
+`better-sqlite3` compila un módulo nativo (`.node`). El entorno de **compilación** y **runtime** deben ser compatibles (mismo libc, misma versión Node):
+
+- **Actual**: builder usa Debian (glibc), runner usa Alpine (musl) → los artefactos `.node` no son compatibles entre sí.
+- **Producción**: usar `node:20-slim` (Debian) en **ambas** etapas (builder + runner) para consistencia, o compilar dentro del mismo Alpine target con headers Node coincidentes.
+- **Desarrollo local**: `npm run dev` funciona correctamente en el host.
 
 ## Desarrollo Local
 
@@ -165,6 +187,13 @@ cp data/ceramica.db backups/ceramica-backup-$(date +%Y%m%d).db
 ```
 
 ## Autenticación
+
+### Páginas de Autenticación (UI)
+
+- `GET /login` — Página de inicio de sesión (formulario email + password)
+- `GET /registro` — Página de registro (formulario nombre + email + password)
+
+Ambas páginas consumen las APIs REST documentadas abajo.
 
 ### Registro de Usuario
 
