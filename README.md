@@ -8,6 +8,14 @@ Tienda online de cerámica artesanal.
 - Checkout, webhook MP, polling de resultado, idempotencia
 - Auth UI: `/login` y `/registro` funcionales
 - 54 tests pasando, lint/typecheck/build ✅
+
+**Preflight Fase 7 — Auth Boundary Fix: COMPLETADA** ✅
+- Middleware desacoplado de `better-sqlite3` (Edge Runtime) mediante cookie JWT HS256 (5 min TTL)
+- `jose` ya era dependencia; sin nuevas dependencias nativas
+- Sesiones en BD siguen siendo source of truth; revocación inmediata preservada
+- 58 tests pasando (incluye 3 tests cookie + 1 regresión revocación)
+- Build, lint, typecheck OK; middleware bundle sin `better-sqlite3`
+
 - Próxima: Fase 7 — Backoffice ADMIN
 
 ⚠️ **Deuda técnica conocida**: `better-sqlite3` puede crashear en `npm run dev` durante HMR (crash nativo intermitente, no afecta producción/build/tests). Ver `TIMELINE.md`.

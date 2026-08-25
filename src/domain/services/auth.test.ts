@@ -232,4 +232,22 @@ it('validar sesión expirada retorna null', async () => {
 
     await db2.destroy();
   });
+
+  it('sesión revocada en DB bloquea autorización aunque JWT siga vigente', async () => {
+    // register admin
+    const reg = await authService.register({
+      email: 'admin@test.com',
+      password: 'password123',
+      name: 'Admin',
+    });
+    expect(reg.user.role).toBe('ADMIN');
+    const sessionId = reg.sessionId;
+
+    // revoke in DB
+    await authService.logout(sessionId);
+
+    // Even if we had a valid JWT (middleware would pass), Node.js validation must fail
+    const session = await authService.validateSession(sessionId);
+    expect(session).toBeNull();
+  });
 });

@@ -3,6 +3,7 @@ import { getDatabase } from '@/infrastructure/database';
 import { AuthService } from '@/domain/services';
 import { loginSchema } from '@/domain/schemas';
 import { rateLimit } from '@/presentation/lib/rate-limit';
+import { signSessionCookie } from '@/lib/session-cookie';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,12 +35,18 @@ export async function POST(request: NextRequest) {
     try {
       const result = await authService.login(parsed.data);
 
+      const signedCookie = await signSessionCookie({
+        sessionId: result.sessionId,
+        userId: result.user.id,
+        role: result.user.role,
+      });
+
       const response = NextResponse.json(
         { user: result.user, redirect: result.redirect },
         { status: 200, headers: rateLimitResult.headers }
       );
 
-      response.cookies.set('session_id', result.sessionId, {
+      response.cookies.set('session_id', signedCookie, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

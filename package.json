@@ -36,6 +36,7 @@
     "cookie-signature": "^1.2.1",
     "date-fns": "^3.3.0",
     "iron-session": "^8.0.0",
+    "jose": "^6.2.10",
     "kysely": "^0.27.0",
     "lucide-react": "^0.344.0",
     "mdx-bundler": "^10.0.0",

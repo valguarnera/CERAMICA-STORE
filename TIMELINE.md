@@ -484,6 +484,60 @@ Pedido
 
 ---
 
+## 10.5. Preflight Fase 7 — Desacoplamiento Auth Boundary (Edge Runtime)
+
+### Estado
+
+`✅ COMPLETADA`
+
+### Problema
+
+El middleware de Next.js 14 se ejecuta en **Edge Runtime** y no puede importar `better-sqlite3` (módulo nativo Node.js que requiere `fs`). Al registrarse el primer usuario, la respuesta `201` era correcta, pero la compilación del middleware fallaba con:
+
+```
+Error: The edge runtime does not support Node.js 'fs' module.
+```
+
+### Solución implementada (Opción A – Cookie HMAC firmada)
+
+1. **Nueva librería** `src/lib/session-cookie.ts` usando `jose` (ya presente en `dependencies`) para firmar y verificar un JWT HS256 que contiene `{sessionId, userId, role, exp}`.
+2. **Tiempo de vida del JWT**: **5 minutos (300 s)** – independiente del TTL de la sesión en BD (7 días). Esto limita la ventana de revocación a ≤5 min en el Edge.
+3. **Rutas de autenticación** (`/api/auth/register`, `/api/auth/login`) ahora:
+   * crean la sesión en BD (sin cambios en `SessionService`);
+   * firman el JWT y lo guardan en la cookie `session_id` (HttpOnly, Secure, SameSite=Lax, maxAge 7 días).
+4. **Middleware** (`src/middleware.ts`) reescrito:
+   * **Elimina** imports de `better-sqlite3`, Kysely, `SessionService`.
+   * Valida la firma y expiración del JWT con `verifySessionCookie`.
+   * Verifica `role === 'ADMIN'` para `/admin/*` y `/api/admin/*`.
+   * Setea headers `x-user-id` / `x-user-role` para consumo downstream (Node.js).
+5. **Autorización definitiva** sigue en Node.js (páginas `/admin/*`, API `/api/admin/*`) llamando a `SessionService.validateSession` contra la BD; por tanto, revocación inmediata (`revoked=1`) y expiración real se respetan (INV‑003).
+6. **Invariantes preservadas**:
+   * **INV‑001** – CUSTOMER nunca accede a ADMIN (middleware bloquea por `role` firmado; Node.js re‑valida).
+   * **INV‑002** – Bootstrap ADMIN atómico sin cambios.
+   * **INV‑003** – Sesión revocada/expirada no autentica (Edge: expiración JWT ≤5 min; Node.js: BD).
+7. **Tests**:
+   * 3 tests unitarios en `src/lib/session-cookie.test.ts` (firma/verificación, token manipulado, token expirado).
+   * Test de regresión en `src/domain/services/auth.test.ts`: sesión ADMIN revocada en BD mientras JWT aún vigente → `validateSession` devuelve `null`.
+   * Suite completa **58 tests** pasando.
+8. **Build** exitoso, middleware bundle **sin `better-sqlite3`** (`grep` confirma).
+
+### Archivos modificados / creados
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/lib/session-cookie.ts` | nuevo – firma/verificación JWT HS256 (Edge‑compatible) |
+| `src/app/api/auth/register/route.ts` | firma JWT al crear sesión |
+| `src/app/api/auth/login/route.ts` | firma JWT al crear sesión |
+| `src/middleware.ts` | reescrito – solo verifica JWT, sin acceso a BD |
+| `src/lib/session-cookie.test.ts` | nuevo – 3 tests |
+| `src/domain/services/auth.test.ts` | +1 test de regresión revocación |
+
+### Próximo paso
+
+Fase 7 – Backoffice ADMIN puede iniciar; la capa de autenticación/autorización ya está desacoplada de SQLite en el middleware Edge.
+
+---
+
 ## 11. Fase 7 — Backoffice ADMIN
 
 ### Estado
