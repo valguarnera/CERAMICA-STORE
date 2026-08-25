@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/infrastructure/database';
 import { SessionService } from '@/domain/services';
 
+export const runtime = 'nodejs';
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
