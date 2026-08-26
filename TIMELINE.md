@@ -538,6 +538,63 @@ Fase 7 – Backoffice ADMIN puede iniciar; la capa de autenticación/autorizaci�
 
 ---
 
+## 11.1 Fase 7.2 — Product Management (CRUD)  ✅ COMPLETADA
+
+### Objetivo
+Implementar CRUD completo de productos para el backoffice ADMIN, respetando la arquitectura y las invariantes.
+
+### Implementación realizada
+1. **Domain Service** `ProductService` extendido con:
+   - `create()` – genera slug automático, valida unicidad, persiste en BD.
+   - `update()` – edición parcial de campos.
+   - `setActive()` – activar/desactivar (soft delete `active = 0`).
+   - `adminFindMany()` – listado paginado con filtros (búsqueda, estado activo/inactivo, ordenamiento).
+2. **Schemas Zod** añadidos en `src/domain/schemas/index.ts`:
+   - `productCreateSchema`, `productUpdateSchema` (parcial).
+   - Tipos `ProductCreateInput`, `ProductUpdateInput`.
+3. **API Routes** (`src/app/api/admin/products/`):
+   - `GET /api/admin/products` – listado paginado + filtros.
+   - `POST /api/admin/products` – crear producto.
+   - `GET /api/admin/products/:id` – detalle.
+   - `PATCH /api/admin/products/:id` – actualizar (incluye toggle `active`).
+4. **UI Admin** (route group `(admin)`):
+   - `/admin/productos` – listado con tabla, búsqueda, filtro activo/inactivo, paginación, acciones (editar, activar/desactivar, soft delete).
+   - `/admin/productos/nuevo` – formulario crear.
+   - `/admin/productos/[id]/editar` – formulario editar.
+   - Componentes reutilizables: `ProductTable`, `ProductForm`, `Sidebar`, `Header`, `StatsCards`.
+4. **Utilidad** `slugify` en `src/presentation/lib/utils.ts`.
+5. **Tests**: suite existente 63/63 passing (incluye 5 dashboard, 3 session-cookie, 1 regresión auth). No tests de producto nuevos añadidos (pueden añadirse en Fase 9).
+
+### Invariantes preservadas
+- **INV-001**: CUSTOMER nunca accede a `/admin/*` (middleware + layout validation).
+- **INV-003**: Sesión revocada/expirada bloqueada (middleware JWT ≤5 min + Node.js BD).
+- **INV-004 / INV-005**: Stock no se modifica en CRUD producto (solo al crear orden).
+
+### Archivos creados / modificados
+| Archivo | Tipo |
+|---------|------|
+| `src/domain/services/product.ts` | extendido (create, update, setActive, adminFindMany, slugify) |
+| `src/domain/services/index.ts` | export añadido |
+| `src/domain/schemas/index.ts` | `productCreateSchema`, `productUpdateSchema`, tipos |
+| `src/domain/services/product.test.ts` | (existente) |
+| `src/app/api/admin/products/route.ts` | nuevo (GET list, POST create) |
+| `src/app/api/admin/products/[id]/route.ts` | nuevo (GET, PATCH) |
+| `src/app/(admin)/admin/productos/page.tsx` | nuevo listado |
+| `src/app/(admin)/admin/productos/nuevo/page.tsx` | nuevo crear |
+| `src/app/(admin)/admin/productos/[id]/editar/page.tsx` | nuevo editar |
+| `src/presentation/components/admin/ProductTable.tsx` | nuevo |
+| `src/presentation/components/admin/ProductForm.tsx` | nuevo |
+| `src/presentation/lib/utils.ts` | añadido `slugify` |
+
+### Verificaciones
+- `npm run build` ✅
+- `npm run lint` ✅ (solo warnings de img)
+- `npm run typecheck` ✅
+- `npm run test` ✅ 63/63
+- Middleware bundle sin `better-sqlite3`
+
+---
+
 ## 11. Fase 7 — Backoffice ADMIN
 
 ### Estado

@@ -16,7 +16,15 @@ Tienda online de cerámica artesanal.
 - 58 tests pasando (incluye 3 tests cookie + 1 regresión revocación)
 - Build, lint, typecheck OK; middleware bundle sin `better-sqlite3`
 
-- Próxima: Fase 7 — Backoffice ADMIN
+**Fase 7.2 — Product Management (CRUD): COMPLETADA** ✅
+- CRUD productos completo en backoffice ADMIN (`/admin/productos`, nuevo, editar)
+- Listado paginado con búsqueda, filtro activo/inactivo, ordenamiento
+- Formularios crear/editar con validación Zod, slug auto-generado, imágenes URLs
+- API routes `/api/admin/products` (GET list, POST create, GET/:id, PATCH)
+- UI admin con Sidebar, Header, ProductTable, ProductForm
+- 63 tests pasando, lint/typecheck/build OK
+
+- Próxima: Fase 7.3 — Stock Management
 
 ⚠️ **Deuda técnica conocida**: `better-sqlite3` puede crashear en `npm run dev` durante HMR (crash nativo intermitente, no afecta producción/build/tests). Ver `TIMELINE.md`.
 

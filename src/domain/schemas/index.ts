@@ -22,6 +22,27 @@ export const productSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+export const productCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().max(100).regex(/^[a-z0-9-]+$/, 'Solo minúsculas, números y guiones').optional(),
+  description: z.string().optional(),
+  price_cents: z.number().int().positive('El precio debe ser mayor a 0'),
+  stock: z.number().int().min(0).default(0),
+  images: z.array(z.string().url()).optional(),
+  active: z.boolean().default(true),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const productUpdateSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().optional().nullable(),
+  price_cents: z.number().int().positive('El precio debe ser mayor a 0').optional(),
+  stock: z.number().int().min(0).optional(),
+  images: z.array(z.string().url()).optional().nullable(),
+  active: z.boolean().optional(),
+  metadata: z.record(z.unknown()).optional().nullable(),
+});
+
 export const cartItemSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.number().int().positive(),
@@ -62,6 +83,8 @@ export const settingsSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
+export type ProductCreateInput = z.infer<typeof productCreateSchema>;
+export type ProductUpdateInput = z.infer<typeof productUpdateSchema>;
 export type CartInput = z.infer<typeof cartSchema>;
 export type CartItemInput = z.infer<typeof cartItemSchema>;
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
