@@ -203,7 +203,7 @@ export class ProductService {
         price_cents: input.priceCents,
         stock: input.stock,
         images: input.images ? JSON.stringify(input.images) : null,
-        active: input.active ?? true,
+        active: ((input.active ?? true) ? 1 : 0) as unknown as boolean,
         metadata: input.metadata ? JSON.stringify(input.metadata) : null,
         created_at: now,
         updated_at: now,
@@ -232,7 +232,7 @@ export class ProductService {
     if (input.priceCents !== undefined) updateData.price_cents = input.priceCents;
     if (input.stock !== undefined) updateData.stock = input.stock;
     if (input.images !== undefined) updateData.images = input.images ? JSON.stringify(input.images) : null;
-    if (input.active !== undefined) updateData.active = input.active;
+    if (input.active !== undefined) updateData.active = (input.active ? 1 : 0) as unknown as boolean;
     if (input.metadata !== undefined) updateData.metadata = input.metadata ? JSON.stringify(input.metadata) : null;
 
     await this.db
@@ -248,7 +248,7 @@ export class ProductService {
     const now = new Date().toISOString();
     await this.db
       .updateTable('products')
-      .set({ active, updated_at: now })
+      .set({ active: (active ? 1 : 0) as unknown as boolean, updated_at: now })
       .where('id', '=', id)
       .execute();
     return this.findById(id);

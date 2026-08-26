@@ -392,4 +392,52 @@ describe('ProductService', () => {
     expect(page3.products).toHaveLength(5);
     expect(page3.page).toBe(3);
   });
+
+  // Regression tests for boolean binding fix
+  it('create product with minimal fields (no images, no metadata) stores active as integer', async () => {
+    const product = await productService.create({
+      name: 'Minimal',
+      priceCents: 5000,
+      stock: 3,
+    });
+    expect(product.active).toBe(true);
+    // verify stored as 1 in DB
+    const row = await db.selectFrom('products').select('active').where('id', '=', product.id).executeTakeFirst();
+    expect(row?.active).toBe(1);
+  });
+
+  it('create product with external image URL', async () => {
+    const product = await productService.create({
+      name: 'With Image',
+      priceCents: 6000,
+      stock: 2,
+      images: ['https://example.com/img1.jpg', 'https://example.com/img2.jpg'],
+    });
+    expect(product.images).toEqual(['https://example.com/img1.jpg', 'https://example.com/img2.jpg']);
+  });
+
+  it('create product validates slug uniqueness', async () => {
+    await productService.create({ name: 'Prod A', slug: 'unique-slug', priceCents: 1000, stock: 1 });
+    await expect(
+      productService.create({ name: 'Prod B', slug: 'unique-slug', priceCents: 2000, stock: 1 })
+    ).rejects.toThrow('SLUG_EXISTS');
+  });
+
+  it('update product does not pass boolean to SQLite', async () => {
+    const created = await productService.create({ name: 'Orig', priceCents: 1000, stock: 5, active: true });
+    const updated = await productService.update(created.id, { active: false });
+    expect(updated?.active).toBe(false);
+    const row = await db.selectFrom('products').select('active').where('id', '=', created.id).executeTakeFirst();
+    expect(row?.active).toBe(0);
+  });
+
+  it('setActive toggles integer in DB', async () => {
+    const created = await productService.create({ name: 'Toggle', priceCents: 1000, stock: 1, active: true });
+    await productService.setActive(created.id, false);
+    let row = await db.selectFrom('products').select('active').where('id', '=', created.id).executeTakeFirst();
+    expect(row?.active).toBe(0);
+    await productService.setActive(created.id, true);
+    row = await db.selectFrom('products').select('active').where('id', '=', created.id).executeTakeFirst();
+    expect(row?.active).toBe(1);
+  });
 });
