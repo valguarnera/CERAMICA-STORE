@@ -5,8 +5,29 @@ import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-let dbInstance: Kysely<DatabaseType> | null = null;
-let sqliteInstance: BetterSqlite3Database | null = null;
+// eslint-disable-next-line no-var
+declare global {
+  // eslint-disable-next-line no-var
+  var __CERAMICA_KYSELY__: Kysely<DatabaseType> | undefined;
+  // eslint-disable-next-line no-var
+  var __CERAMICA_SQLITE__: BetterSqlite3Database | undefined;
+}
+
+const GLOBAL_KEY_DB = '__CERAMICA_KYSELY__';
+const GLOBAL_KEY_SQLITE = '__CERAMICA_SQLITE__';
+
+function getGlobalDbInstance(): Kysely<DatabaseType> | null {
+  return globalThis[GLOBAL_KEY_DB] ?? null;
+}
+function setGlobalDbInstance(instance: Kysely<DatabaseType>) {
+  globalThis[GLOBAL_KEY_DB] = instance;
+}
+function getGlobalSqliteInstance(): BetterSqlite3Database | null {
+  return globalThis[GLOBAL_KEY_SQLITE] ?? null;
+}
+function setGlobalSqliteInstance(instance: BetterSqlite3Database) {
+  globalThis[GLOBAL_KEY_SQLITE] = instance;
+}
 
 function createDatabase(): Kysely<DatabaseType> {
   const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'ceramica.db');
@@ -16,34 +37,45 @@ function createDatabase(): Kysely<DatabaseType> {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  sqliteInstance = new Database(dbPath);
-  sqliteInstance.pragma('journal_mode = WAL');
-  sqliteInstance.pragma('foreign_keys = ON');
-  sqliteInstance.pragma('busy_timeout = 5000');
+  let sqlite = getGlobalSqliteInstance();
+  if (!sqlite) {
+    sqlite = new Database(dbPath);
+    sqlite.pragma('journal_mode = WAL');
+    sqlite.pragma('foreign_keys = ON');
+    sqlite.pragma('busy_timeout = 5000');
+    setGlobalSqliteInstance(sqlite);
+  }
 
-  return new Kysely<DatabaseType>({
-    dialect: new SqliteDialect({ database: sqliteInstance }),
-  });
+  let kysely = getGlobalDbInstance();
+  if (!kysely) {
+    kysely = new Kysely<DatabaseType>({
+      dialect: new SqliteDialect({ database: sqlite }),
+    });
+    setGlobalDbInstance(kysely);
+  }
+  return kysely;
 }
 
 export function getDatabase(): Kysely<DatabaseType> {
-  if (dbInstance) return dbInstance;
-  dbInstance = createDatabase();
-  return dbInstance;
+  const existing = getGlobalDbInstance();
+  if (existing) return existing;
+  return createDatabase();
 }
 
 export function getRawDatabase(): BetterSqlite3Database | null {
-  return sqliteInstance;
+  return getGlobalSqliteInstance();
 }
 
 export function closeDatabase(): void {
-  if (dbInstance) {
-    dbInstance.destroy();
-    dbInstance = null;
+  const kysely = getGlobalDbInstance();
+  if (kysely) {
+    kysely.destroy();
+    delete globalThis[GLOBAL_KEY_DB];
   }
-  if (sqliteInstance) {
-    sqliteInstance.close();
-    sqliteInstance = null;
+  const sqlite = getGlobalSqliteInstance();
+  if (sqlite) {
+    sqlite.close();
+    delete globalThis[GLOBAL_KEY_SQLITE];
   }
 }
 
@@ -51,7 +83,8 @@ if (process.env.NODE_ENV === 'development' && typeof module !== 'undefined') {
   const hotModule = module as unknown as { hot?: { dispose: (fn: () => void) => void } };
   if (hotModule.hot) {
     hotModule.hot.dispose(() => {
-      closeDatabase();
+      // Do NOT close on HMR; keep singleton alive across reloads
+      // closeDatabase();
     });
   }
 }
