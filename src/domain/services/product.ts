@@ -148,9 +148,9 @@ export class ProductService {
       description: product.description ? String(product.description) : null,
       priceCents: Number(product.price_cents),
       stock: Number(product.stock),
-      images: product.images ? String(product.images) : null,
+      images: product.images ? JSON.parse(String(product.images)) : null,
       active: Boolean(product.active),
-      metadata: product.metadata ? String(product.metadata) : null,
+      metadata: product.metadata ? JSON.parse(String(product.metadata)) : null,
       createdAt: String(product.created_at),
       updatedAt: String(product.updated_at),
     };

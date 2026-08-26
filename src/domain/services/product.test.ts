@@ -281,4 +281,115 @@ describe('ProductService', () => {
     const inactive = await productService.findBySlug('product-0');
     expect(inactive).toBeNull();
   });
+
+  // Admin CRUD tests
+  it('create product auto-generates slug and inserts', async () => {
+    const product = await productService.create({
+      name: 'Jarrón Artesanal',
+      priceCents: 15000,
+      stock: 5,
+      description: 'Hecho a mano',
+      images: ['https://example.com/jarron.jpg'],
+      active: true,
+      metadata: { color: 'azul' },
+    });
+
+    expect(product.id).toBeDefined();
+    expect(product.slug).toBe('jarron-artesanal');
+    expect(product.name).toBe('Jarrón Artesanal');
+    expect(product.priceCents).toBe(15000);
+    expect(product.stock).toBe(5);
+    expect(product.active).toBe(true);
+    expect(product.images).toContain('https://example.com/jarron.jpg');
+    expect(product.metadata).toEqual({ color: 'azul' });
+  });
+
+  it('create product with custom slug', async () => {
+    const product = await productService.create({
+      name: 'Custom Name',
+      slug: 'custom-slug',
+      priceCents: 1000,
+      stock: 1,
+    });
+    expect(product.slug).toBe('custom-slug');
+  });
+
+  it('create product throws on duplicate slug', async () => {
+    await productService.create({ name: 'Prod A', slug: 'same-slug', priceCents: 1000, stock: 1 });
+    await expect(
+      productService.create({ name: 'Prod B', slug: 'same-slug', priceCents: 2000, stock: 1 })
+    ).rejects.toThrow('SLUG_EXISTS');
+  });
+
+  it('update product partially updates fields', async () => {
+    const created = await productService.create({ name: 'Original', priceCents: 1000, stock: 10 });
+    const updated = await productService.update(created.id, {
+      name: 'Actualizado',
+      priceCents: 2000,
+    });
+
+    expect(updated).not.toBeNull();
+    expect(updated?.name).toBe('Actualizado');
+    expect(updated?.priceCents).toBe(2000);
+    expect(updated?.stock).toBe(10); // unchanged
+  });
+
+  it('setActive toggles active flag', async () => {
+    const created = await productService.create({ name: 'Test', priceCents: 1000, stock: 1, active: true });
+    expect(created.active).toBe(true);
+
+    const deactivated = await productService.setActive(created.id, false);
+    expect(deactivated?.active).toBe(false);
+
+    const reactivated = await productService.setActive(created.id, true);
+    expect(reactivated?.active).toBe(true);
+  });
+
+  it('adminFindMany returns all products including inactive when active=null', async () => {
+    await productService.create({ name: 'Active1', priceCents: 1000, stock: 5, active: true });
+    await productService.create({ name: 'Active2', priceCents: 2000, stock: 3, active: true });
+    await productService.create({ name: 'Inactive1', priceCents: 3000, stock: 0, active: false });
+
+    const all = await productService.adminFindMany({ active: null, pageSize: 10 });
+    expect(all.total).toBe(3);
+    const onlyActive = await productService.adminFindMany({ active: true, pageSize: 10 });
+    expect(onlyActive.total).toBe(2);
+    const onlyInactive = await productService.adminFindMany({ active: false, pageSize: 10 });
+    expect(onlyInactive.total).toBe(1);
+  });
+
+  it('adminFindMany search filters by name and description', async () => {
+    await productService.create({ name: 'Vaso Azul', description: 'color azul', priceCents: 1000, stock: 1 });
+    await productService.create({ name: 'Plato Rojo', description: 'color rojo', priceCents: 2000, stock: 2 });
+
+    const result = await productService.adminFindMany({ search: 'azul', pageSize: 10 });
+    expect(result.total).toBe(1);
+    expect(result.products[0].name).toBe('Vaso Azul');
+  });
+
+  it('adminFindMany sorting works', async () => {
+    await productService.create({ name: 'C', priceCents: 3000, stock: 1 });
+    await productService.create({ name: 'A', priceCents: 1000, stock: 1 });
+    await productService.create({ name: 'B', priceCents: 2000, stock: 1 });
+
+    const priceAsc = await productService.adminFindMany({ sort: 'price_asc', pageSize: 10 });
+    expect(priceAsc.products.map(p => p.priceCents)).toEqual([1000, 2000, 3000]);
+
+    const priceDesc = await productService.adminFindMany({ sort: 'price_desc', pageSize: 10 });
+    expect(priceDesc.products.map(p => p.priceCents)).toEqual([3000, 2000, 1000]);
+  });
+
+  it('adminFindMany pagination', async () => {
+    for (let i = 0; i < 25; i++) {
+      await productService.create({ name: `Prod ${i}`, priceCents: 1000 + i * 10, stock: i });
+    }
+    const page1 = await productService.adminFindMany({ page: 1, pageSize: 10 });
+    expect(page1.products).toHaveLength(10);
+    expect(page1.page).toBe(1);
+    expect(page1.totalPages).toBe(3);
+
+    const page3 = await productService.adminFindMany({ page: 3, pageSize: 10 });
+    expect(page3.products).toHaveLength(5);
+    expect(page3.page).toBe(3);
+  });
 });
