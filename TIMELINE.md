@@ -595,6 +595,59 @@ Implementar CRUD completo de productos para el backoffice ADMIN, respetando la a
 
 ---
 
+## 11.2 Fase 7.2.1 — Auth Redirect Fix (ADMIN → /admin, CUSTOMER → /)
+
+### Objetivo
+Corregir el bug de redirección tras login: un ADMIN autenticado era redirigido a `/` en lugar de permanecer en `/admin`. La causa era que el layout admin (`src/app/(admin)/layout.tsx`) pasaba el JWT completo a `SessionService.validateSession()` en lugar de extraer el `sessionId` del payload firmado.
+
+### Cambios realizados
+1. **Nueva utilidad** `src/lib/get-server-session.ts`:
+   - Lee la cookie `session_id`.
+   - `verifySessionCookie(jwt)` → payload.
+   - `SessionService.validateSession(payload.sessionId)` contra BD.
+   - Devuelve `SessionData | null` (incluye `role`).
+
+2. **Layout admin actualizado** (`src/app/(admin)/layout.tsx`):
+   - Usa `getValidatedSession()`.
+   - Si no hay sesión o `role !== 'ADMIN'` → `redirect('/')`.
+   - Pasa `session.role` a `Header`.
+
+3. **Tests unitarios** añadidos:
+   - `src/lib/get-server-session.test.ts` (5 casos: sin cookie, JWT inválido, sesión ausente en BD, ADMIN válido, CUSTOMER válido).
+   - `src/app/(admin)/layout.test.tsx` (redirect sin sesión, redirect CUSTOMER, render ADMIN).
+
+4. **Tests E2E** añadidos en `e2e/auth.spec.ts`:
+   - ADMIN login → `/admin`.
+   - CUSTOMER login → `/`.
+   - Credenciales inválidas → toast error, sin recarga.
+   - CUSTOMER accede a `/admin` → redirige a `/`.
+   - Sesión ADMIN revocada → `/login` o `/`.
+
+### Verificaciones
+- `npm run typecheck` ✅
+- `npm run lint` ✅ (warnings previos)
+- `npm run build` ✅
+- `npm run test` ✅ (nuevos tests pasan; suite total 68/68)
+- `npm run test:e2e` — **no ejecutable en el entorno CI actual** por falta de dependencias del headless shell (`libnspr4`). Los tests están escritos y listos para ejecutarse cuando el entorno lo permita.
+- Flujo manual verificado:
+  - ADMIN: `/` → `/login?redirect=/admin` → login → `/admin`.
+  - CUSTOMER: `/` → `/login` → login → `/`.
+
+### Deuda técnica
+- `better-sqlite3` crash intermitente en `npm run dev` (HMR) persiste; no afecta producción, build ni tests.
+
+### Archivos creados / modificados
+| Archivo | Tipo |
+|---------|------|
+| `src/lib/get-server-session.ts` | nuevo |
+| `src/lib/get-server-session.test.ts` | nuevo |
+| `src/app/(admin)/layout.tsx` | modificado |
+| `src/app/(admin)/layout.test.tsx` | nuevo |
+| `e2e/auth.spec.ts` | nuevo |
+| `playwright.config.ts` | ajustado `baseURL` a 3001 |
+
+---
+
 ## 11. Fase 7 — Backoffice ADMIN
 
 ### Estado

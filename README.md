@@ -24,6 +24,13 @@ Tienda online de cerámica artesanal.
 - UI admin con Sidebar, Header, ProductTable, ProductForm
 - 63 tests pasando, lint/typecheck/build OK
 
+**Auth Redirect Fix (Post‑Fase 7.2): COMPLETADA** ✅
+- Corrección del bug que redirigía a ADMIN a `/` tras login.
+- Nueva utilidad `getValidatedSession()` que verifica JWT → `sessionId` → BD.
+- Layout admin actualizado, tests unitarios y E2E añadidos.
+- Suite total **68 tests** pasando; lint/typecheck/build OK.
+- Flujo manual verificado: ADMIN → `/admin`, CUSTOMER → `/`.
+
 - Próxima: Fase 7.3 — Stock Management
 
 ⚠️ **Deuda técnica conocida**: `better-sqlite3` puede crashear en `npm run dev` durante HMR (crash nativo intermitente, no afecta producción/build/tests). Ver `TIMELINE.md`.
