@@ -83,8 +83,8 @@ if (process.env.NODE_ENV === 'development' && typeof module !== 'undefined') {
   const hotModule = module as unknown as { hot?: { dispose: (fn: () => void) => void } };
   if (hotModule.hot) {
     hotModule.hot.dispose(() => {
-      // Do NOT close on HMR; keep singleton alive across reloads
-      // closeDatabase();
+      // Close database on HMR to avoid native module mismatch across reloads
+      closeDatabase();
     });
   }
 }

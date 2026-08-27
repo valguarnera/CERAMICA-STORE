@@ -300,8 +300,8 @@ describe('ProductService', () => {
     expect(product.priceCents).toBe(15000);
     expect(product.stock).toBe(5);
     expect(product.active).toBe(true);
-    expect(product.images).toContain('https://example.com/jarron.jpg');
-    expect(product.metadata).toEqual({ color: 'azul' });
+    expect(JSON.parse(product.images || '[]')).toContain('https://example.com/jarron.jpg');
+    expect(JSON.parse(product.metadata || '{}')).toEqual({ color: 'azul' });
   });
 
   it('create product with custom slug', async () => {
@@ -404,6 +404,8 @@ describe('ProductService', () => {
     // verify stored as 1 in DB
     const row = await db.selectFrom('products').select('active').where('id', '=', product.id).executeTakeFirst();
     expect(row?.active).toBe(1);
+    // images stored as empty array JSON string
+    expect(product.images).toBe('[]');
   });
 
   it('create product with external image URL', async () => {
@@ -413,7 +415,7 @@ describe('ProductService', () => {
       stock: 2,
       images: ['https://example.com/img1.jpg', 'https://example.com/img2.jpg'],
     });
-    expect(product.images).toEqual(['https://example.com/img1.jpg', 'https://example.com/img2.jpg']);
+    expect(JSON.parse(product.images || '[]')).toEqual(['https://example.com/img1.jpg', 'https://example.com/img2.jpg']);
   });
 
   it('create product validates slug uniqueness', async () => {
@@ -439,5 +441,59 @@ describe('ProductService', () => {
     await productService.setActive(created.id, true);
     row = await db.selectFrom('products').select('active').where('id', '=', created.id).executeTakeFirst();
     expect(row?.active).toBe(1);
+  });
+
+  // Images handling tests
+  it('create product without images stores empty array', async () => {
+    const product = await productService.create({
+      name: 'No Images',
+      priceCents: 3000,
+      stock: 1,
+    });
+    expect(product.images).toBe('[]');
+    const row = await db.selectFrom('products').select('images').where('id', '=', product.id).executeTakeFirst();
+    expect(row?.images).toBe('[]');
+  });
+
+  it('create product with single image URL', async () => {
+    const product = await productService.create({
+      name: 'Single Image',
+      priceCents: 4000,
+      stock: 2,
+      images: ['https://example.com/single.jpg'],
+    });
+    expect(JSON.parse(product.images || '[]')).toEqual(['https://example.com/single.jpg']);
+  });
+
+  it('create product with multiple image URLs', async () => {
+    const product = await productService.create({
+      name: 'Multi Image',
+      priceCents: 5000,
+      stock: 3,
+      images: ['https://example.com/1.jpg', 'https://example.com/2.jpg', 'https://example.com/3.jpg'],
+    });
+    const imgs = JSON.parse(product.images || '[]');
+    expect(imgs).toHaveLength(3);
+    expect(imgs[0]).toBe('https://example.com/1.jpg');
+  });
+
+  it('adminFindMany returns products with empty images array', async () => {
+    await productService.create({ name: 'Test1', priceCents: 1000, stock: 1 });
+    await productService.create({ name: 'Test2', priceCents: 2000, stock: 2, images: ['https://example.com/img.jpg'] });
+    const result = await productService.adminFindMany({ pageSize: 10 });
+    expect(result.total).toBe(2);
+    const noImg = result.products.find(p => p.name === 'Test1');
+    const withImg = result.products.find(p => p.name === 'Test2');
+    expect(noImg?.images).toBe('[]');
+    expect(JSON.parse(withImg?.images || '[]')).toEqual(['https://example.com/img.jpg']);
+  });
+
+  it('update product images to empty array persists correctly', async () => {
+    const created = await productService.create({ name: 'Upd', priceCents: 1000, stock: 1, images: ['https://example.com/old.jpg'] });
+    expect(JSON.parse(created.images || '[]')).toEqual(['https://example.com/old.jpg']);
+    const updated = await productService.update(created.id, { images: [] });
+    expect(updated?.images).toBe('[]');
+    const row = await db.selectFrom('products').select('images').where('id', '=', created.id).executeTakeFirst();
+    expect(row?.images).toBe('[]');
   });
 });
