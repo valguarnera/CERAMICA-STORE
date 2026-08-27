@@ -45,6 +45,7 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [imageUrls, setImageUrls] = useState(formData.images.filter(Boolean));
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // auto-generate slug from name
   const handleNameChange = (value: string) => {
@@ -90,6 +91,32 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
 
   const removeImage = (url: string) => {
     setImageUrls(imageUrls.filter(u => u !== url));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const formData = new FormData();
+    Array.from(files).forEach(f => formData.append('files', f));
+    try {
+      const res = await fetch('/api/admin/uploads/products', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error al subir imágenes');
+        return;
+      }
+      setImageUrls(prev => [...prev, ...data.urls]);
+    } catch {
+      alert('Error de red al subir imágenes');
+    } finally {
+      setUploading(false);
+      // reset input
+      e.target.value = '';
+    }
   };
 
   return (
@@ -207,6 +234,18 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
               <button type="button" onClick={addImage} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
                 Agregar
               </button>
+            </div>
+            <div className="mt-2">
+              <label className="block text-sm font-medium text-gray-700">Subir archivos</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+              {uploading && <p className="mt-1 text-sm text-gray-500">Subiendo...</p>}
             </div>
             <p className="text-xs text-gray-500">Máximo 10 imágenes. La primera será la principal.</p>
           </div>

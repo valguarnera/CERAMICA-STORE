@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from '@/domain/db';
 import { CartService } from './cart';
 import { ProductService } from './product';
+import { cartAddItemSchema } from '@/domain/schemas';
 
 function createTestDb(): Kysely<DatabaseType> {
   const sqlite = new Database(':memory:');
@@ -334,5 +335,26 @@ describe('CartService', () => {
 
     const productId51 = await createProduct({ id: 'prod-51', stock: 10, priceCents: 1000 });
     await expect(cartService.addItem(cart, productId51, 1)).rejects.toThrow('CART_FULL');
+  });
+
+  it('cliente no puede controlar el precio del producto (schema sin unitPriceCents)', () => {
+    const payload = {
+      productId: '123e4567-e89b-12d3-a456-426614174000',
+      quantity: 2,
+      unitPriceCents: 999, // intento de manipular precio
+    };
+    const result = cartAddItemSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+    // unitPriceCents debe ser ignorado / no estar en data
+    expect((result.data as any).unitPriceCents).toBeUndefined();
+  });
+
+  it('precio en carrito es snapshot del servidor y no del cliente', async () => {
+    const productId = await createProduct({ stock: 10, priceCents: 1000 });
+    const cart = cartService.getEmptyCart();
+
+    const updatedCart = await cartService.addItem(cart, productId, 2);
+    // El precio viene del producto en BD (1000), no del request
+    expect(updatedCart.items[0].unitPriceCents).toBe(1000);
   });
 });

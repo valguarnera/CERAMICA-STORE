@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/infrastructure/database';
 import { CartService } from '@/domain/services';
-import { cartItemSchema } from '@/domain/schemas';
+import { cartAddItemSchema } from '@/domain/schemas';
 import { getCartSecret } from '@/presentation/lib/cart-cookie';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = cartItemSchema.safeParse(body);
+    const parsed = cartAddItemSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

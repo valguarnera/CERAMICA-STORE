@@ -3,6 +3,7 @@
 # ===== Base (Alpine for runtime) =====
 FROM node:20-alpine AS base
 WORKDIR /app
+RUN mkdir -p /app/public/uploads/products
 
 # ===== Dependencies (Debian for building native modules) =====
 FROM node:20 AS deps

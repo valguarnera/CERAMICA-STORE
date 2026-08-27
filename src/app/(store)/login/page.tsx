@@ -4,13 +4,13 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/presentation/components/ui/Toast';
+import { useAsyncSubmit } from '@/presentation/hooks/useAsyncSubmit';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,27 +22,29 @@ function LoginForm() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
+  const { submit, loading } = useAsyncSubmit(
+    async (fd: typeof formData) => {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(fd),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast({ title: data.error || 'Error al iniciar sesión', variant: 'destructive' });
-        setLoading(false);
-        return;
-      }
-      router.push(data.redirect || redirect);
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión');
+      return data.redirect || redirect;
+    },
+    (redirectUrl) => {
+      router.push(redirectUrl);
       router.refresh();
-    } catch {
-      toast({ title: 'Error de red', variant: 'destructive' });
-      setLoading(false);
+    },
+    (err) => {
+      toast({ title: err instanceof Error ? err.message : 'Error de red', variant: 'destructive' });
     }
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submit(formData);
   };
 
   return (

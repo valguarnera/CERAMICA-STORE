@@ -9,7 +9,7 @@ interface Toast {
   id: string;
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive';
+  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
 }
 
 interface ToastContextType {
@@ -55,9 +55,22 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
-  const variantClass = toast.variant === 'destructive'
-    ? 'bg-destructive text-destructive-foreground border-destructive'
-    : 'bg-background text-foreground border';
+  const variantClass = (() => {
+    switch (toast.variant) {
+      case 'destructive':
+        return 'bg-destructive text-destructive-foreground border-destructive';
+      case 'success':
+        return 'bg-green-600 text-white border-green-600';
+      case 'warning':
+        return 'bg-yellow-500 text-white border-yellow-500';
+      case 'info':
+        return 'bg-blue-500 text-white border-blue-500';
+      default:
+        return 'bg-background text-foreground border';
+    }
+  })();
+
+  const role = toast.variant === 'destructive' || toast.variant === 'warning' ? 'alert' : 'status';
 
   return (
     <div
@@ -65,7 +78,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         'relative pointer-events-auto flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-4 pr-8 shadow-lg transition-all',
         variantClass
       )}
-      role="alert"
+      role={role}
+      aria-live={toast.variant === 'destructive' || toast.variant === 'warning' ? 'assertive' : 'polite'}
     >
       <div className="grid gap-1">
         <div className="text-sm font-semibold">{toast.title}</div>

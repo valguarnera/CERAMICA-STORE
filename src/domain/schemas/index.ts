@@ -49,6 +49,11 @@ export const cartItemSchema = z.object({
   unitPriceCents: z.number().int().positive(),
 });
 
+export const cartAddItemSchema = z.object({
+  productId: z.string().uuid(),
+  quantity: z.number().int().positive(),
+});
+
 export const cartSchema = z.object({
   version: z.number().int().positive(),
   items: z.array(cartItemSchema),
