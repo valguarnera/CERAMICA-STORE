@@ -21,7 +21,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install @next/swc-linux-x64-musl --ignore-scripts --save-dev && \
     npm rebuild better-sqlite3
 COPY . .
 EXPOSE 3000
