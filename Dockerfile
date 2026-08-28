@@ -1,25 +1,27 @@
 # syntax=docker/dockerfile:1.4
 
-# ===== Base (Alpine for runtime) =====
-FROM node:20-alpine AS base
+# ===== Base (Debian slim for runtime) =====
+FROM node:20-slim AS base
 WORKDIR /app
 RUN mkdir -p /app/public/uploads/products
 
 # ===== Dependencies (Debian for building native modules) =====
-FROM node:20 AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci --ignore-scripts
 
-# ===== Development (Alpine runtime with copied node_modules) =====
+# ===== Development (Debian slim runtime with copied node_modules) =====
 FROM base AS development
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package*.json ./
-RUN npm install @next/swc-linux-x64-musl --ignore-scripts --save-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install @next/swc-linux-x64-musl --ignore-scripts --save-dev && \
     npm rebuild better-sqlite3
 COPY . .
 EXPOSE 3000
