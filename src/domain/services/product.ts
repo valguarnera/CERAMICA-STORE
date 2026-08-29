@@ -3,6 +3,24 @@ import type { Database } from '@/domain/db';
 import { sql } from 'kysely';
 import { randomUUID } from 'crypto';
 
+function normalizeImageUrl(url: string): string {
+  if (url.startsWith('/')) return url;
+  try {
+    const u = new URL(url);
+    if (u.pathname.startsWith('/uploads/')) {
+      return u.pathname;
+    }
+  } catch {
+    // ignore
+  }
+  return url;
+}
+
+function normalizeImages(images: string[] | undefined): string[] | undefined {
+  if (!images) return images;
+  return images.map(normalizeImageUrl);
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -141,6 +159,14 @@ export class ProductService {
   }
 
   private mapProduct(product: Record<string, unknown>): Product {
+    const rawImages = product.images ? String(product.images) : '[]';
+    let imagesArray: string[] = [];
+    try {
+      imagesArray = JSON.parse(rawImages);
+    } catch {
+      imagesArray = [];
+    }
+    const normalizedImages = normalizeImages(imagesArray);
     return {
       id: String(product.id),
       slug: String(product.slug),
@@ -148,7 +174,7 @@ export class ProductService {
       description: product.description ? String(product.description) : null,
       priceCents: Number(product.price_cents),
       stock: Number(product.stock),
-      images: product.images ? String(product.images) : null,
+      images: JSON.stringify(normalizedImages),
       active: Boolean(product.active),
       metadata: product.metadata ? String(product.metadata) : null,
       createdAt: String(product.created_at),
@@ -202,7 +228,7 @@ export class ProductService {
         description: input.description ?? null,
         price_cents: input.priceCents,
         stock: input.stock,
-        images: input.images && input.images.length > 0 ? JSON.stringify(input.images) : '[]',
+        images: input.images && input.images.length > 0 ? JSON.stringify(normalizeImages(input.images)) : '[]',
         active: ((input.active ?? true) ? 1 : 0) as unknown as boolean,
         metadata: input.metadata ? JSON.stringify(input.metadata) : null,
         created_at: now,
@@ -231,7 +257,7 @@ export class ProductService {
     if (input.description !== undefined) updateData.description = input.description;
     if (input.priceCents !== undefined) updateData.price_cents = input.priceCents;
     if (input.stock !== undefined) updateData.stock = input.stock;
-    if (input.images !== undefined) updateData.images = input.images && input.images.length > 0 ? JSON.stringify(input.images) : '[]';
+    if (input.images !== undefined) updateData.images = input.images && input.images.length > 0 ? JSON.stringify(normalizeImages(input.images)) : '[]';
     if (input.active !== undefined) updateData.active = (input.active ? 1 : 0) as unknown as boolean;
     if (input.metadata !== undefined) updateData.metadata = input.metadata ? JSON.stringify(input.metadata) : null;
 

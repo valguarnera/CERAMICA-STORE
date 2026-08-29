@@ -57,3 +57,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+article {
+  max-width: 400px;
+  width: auto;
+  margin: 0 auto;
+}
+
+article img {
+  position: relative!important;
+}
