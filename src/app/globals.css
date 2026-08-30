@@ -64,6 +64,12 @@ article {
   margin: 0 auto;
 }
 
+tbody img{
+  max-width: 200px;
+  width: auto;
+  margin: 0 auto;
+}
+
 article img {
   position: relative!important;
 }
