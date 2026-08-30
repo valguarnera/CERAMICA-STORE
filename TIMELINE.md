@@ -1,7 +1,7 @@
 # CERAMICA-STORE — Development Timeline
 
-> **Estado actual:** Fase 6 — COMPLETADA
-> **Próxima fase:** Fase 7 — Backoffice ADMIN
+> **Estado actual:** Fase 7 — Backoffice ADMIN (7.2 completado, ajustes UX en curso)
+> **Próxima fase:** Fase 7.3 — Stock Management
 > **Fuente de verdad:** `SPEC/`
 > **Última actualización:** 2026-08-25
 
@@ -645,6 +645,53 @@ Corregir el bug de redirección tras login: un ADMIN autenticado era redirigido 
 | `src/app/(admin)/layout.test.tsx` | nuevo |
 | `e2e/auth.spec.ts` | nuevo |
 | `playwright.config.ts` | ajustado `baseURL` a 3001 |
+
+---
+
+## 11.3 Fase 7.2.2 — UX & Image Polish (Desactivar fix, thumbnails, upload structure, navigation)
+
+### Objetivo
+Pulir la experiencia de administración antes de iniciar la Fase 7.3.
+
+### Cambios realizados
+1. **Botón “Desactivar” en `/admin/productos`**  
+   - El handler `onToggleActive` ahora espera la respuesta del `PATCH` antes de recargar el listado.  
+   - Flujo: Click → `PATCH /api/admin/products/[id]` con `{ active: false }` → respuesta 200 → `fetchProducts()` → UI actualizada.  
+   - Es un *soft delete* (campo `active = 0`), no hard delete.
+
+2. **Gestión visual de imágenes (thumbnails)**  
+   - El formulario `ProductForm` muestra las imágenes como miniaturas (`next/image`) en lugar de inputs de URL editables.  
+   - Cada miniatura tiene botón accesible `×` para quitar la imagen del array `images`.  
+   - La eliminación lógica funciona y persiste al guardar; no se borra el archivo físico (deuda técnica).
+
+3. **Estructura de almacenamiento de imágenes**  
+   - `POST /api/admin/uploads/products` crea carpeta `/public/uploads/products/YYYY-MM-DD/<uuid>/`.  
+   - Guarda el archivo original y genera un *thumbnail* 300 px (`sharp`, salida WebP) llamado `thumb_<uuid>.webp`.  
+   - Respuesta JSON devuelve `{ original, thumbnail }`; el formulario persiste ambas rutas en `images[]`.  
+   - Rutas relativas `/uploads/products/...` (sin `http://localhost:3000`).  
+   - URLs externas legítimas se conservan intactas.
+
+4. **Navegación ADMIN ↔ sitio público**  
+   - Header admin (`Header.tsx`) añade enlace “← Ver tienda” → `/`.  
+   - Header público muestra email del usuario autenticado; si `role === 'ADMIN'` muestra enlace “Administración” → `/admin`.  
+   - La seguridad real sigue dependiendo del middleware y layout admin.
+
+### Verificaciones
+- `npm run lint` ✅  
+- `npm run typecheck` ✅  
+- `npm run build` ✅ (Docker `node:22-slim`)  
+- `npm test` 89/92 pass (3 fallos pre‑existentes en layout test)  
+- Pruebas manuales en Docker Node 22: botón desactivar, upload + thumbnails, HMR, teardown limpio.
+
+### Archivos modificados / creados
+| Archivo | Tipo |
+|---------|------|
+| `src/app/(admin)/admin/productos/page.tsx` | handler `onToggleActive` async |
+| `src/presentation/components/admin/ProductForm.tsx` | galería thumbnails + botón × |
+| `src/app/api/admin/uploads/products/route.ts` | carpetas fecha/UUID + `sharp` thumbnail |
+| `src/presentation/components/admin/Header.tsx` | enlace “Ver tienda” |
+| `src/presentation/components/store/Header.tsx` | email + enlace admin condicional |
+| `package.json` / `pnpm-lock.yaml` | dependencia `sharp@0.33` |
 
 ---
 

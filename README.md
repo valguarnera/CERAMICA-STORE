@@ -4,38 +4,131 @@ Tienda online de cerámica artesanal.
 
 ## Estado actual
 
-**Fase 6 — Checkout / Mercado Pago: COMPLETADA** ✅
-- Checkout, webhook MP, polling de resultado, idempotencia
-- Auth UI: `/login` y `/registro` funcionales
-- 54 tests pasando, lint/typecheck/build ✅
+### Fase 7 — Backoffice ADMIN
 
-**Preflight Fase 7 — Auth Boundary Fix: COMPLETADA** ✅
-- Middleware desacoplado de `better-sqlite3` (Edge Runtime) mediante cookie JWT HS256 (5 min TTL)
-- `jose` ya era dependencia; sin nuevas dependencias nativas
-- Sesiones en BD siguen siendo source of truth; revocación inmediata preservada
-- 58 tests pasando (incluye 3 tests cookie + 1 regresión revocación)
-- Build, lint, typecheck OK; middleware bundle sin `better-sqlite3`
+Estado general: 🟡 En progreso
 
-**Fase 7.2 — Product Management (CRUD): COMPLETADA** ✅
-- CRUD productos completo en backoffice ADMIN (`/admin/productos`, nuevo, editar)
-- Listado paginado con búsqueda, filtro activo/inactivo, ordenamiento
-- Formularios crear/editar con validación Zod, slug auto-generado, imágenes URLs
-- API routes `/api/admin/products` (GET list, POST create, GET/:id, PATCH)
-- UI admin con Sidebar, Header, ProductTable, ProductForm
-- 63 tests pasando, lint/typecheck/build OK
+✅ Completado
+- Preflight / frontera de autenticación
+  - Middleware compatible con Edge Runtime.
+  - Eliminada dependencia directa de SQLite/better-sqlite3 desde middleware.
+  - Session cookie firmado con JWT/HMAC mediante jose.
+  - Validación de sesión compatible con Edge.
+  - TTL de cookie y sesión DB definidos.
+  - Tests y build verificados.
+- Base del Backoffice
+  - Protección de rutas /admin.
+  - Redirección de usuarios no autenticados.
+  - Separación ADMIN/CUSTOMER.
+  - Shell/layout inicial del panel.
+  - Dashboard inicial.
+- Gestión de productos — base funcional
+  - Listado de productos.
+  - Paginación.
+  - Ordenamiento.
+  - Alta de productos.
+  - Edición de productos.
+  - API /api/admin/products.
+  - API /api/admin/products/[id].
+  - Upload de imágenes de productos.
+  - Persistencia de productos en SQLite.
+  - Pruebas CRUD realizadas desde el panel.
+- Diagnóstico del runtime
+  - Crash nativo de better-sqlite3 reproducido en Node 24.
+  - Stack trace identificado en Statement::~Statement().
+  - Node 22 probado en host.
+  - Crash no volvió a reproducirse con Node 22.
+  - Node 20 también validado en Docker.
+  - Evidencia suficiente para considerar Node 22 como runtime de desarrollo viable.
+  - Rama fix/node-runtime-baseline preparada para consolidar la decisión.
+- **Ajustes UX y imágenes (reciente)**
+  - Botón “Desactivar” corregido (soft delete con recarga tras PATCH).
+  - Galería de miniaturas en formulario de productos (thumbnails + botón × accesible).
+  - Upload organiza archivos en `/public/uploads/products/YYYY-MM-DD/<uuid>/` y genera thumbnail WebP 300 px (sharp).
+  - Normalización de URLs locales a rutas relativas `/uploads/products/...`; URLs externas se conservan.
+  - Navegación ADMIN ↔ sitio público: Header admin con “← Ver tienda”, Header público muestra email y enlace “Administración” para ADMIN.
+  - Runtime consolidado a **Node 22 LTS** (`.nvmrc` 22.17.0, Docker `node:22-slim`).
 
-**Auth Redirect Fix (Post‑Fase 7.2): COMPLETADA** ✅
-- Corrección del bug que redirigía a ADMIN a `/` tras login.
-- Nueva utilidad `getValidatedSession()` que verifica JWT → `sessionId` → BD.
-- Layout admin actualizado, tests unitarios y E2E añadidos.
-- Suite total **68 tests** pasando; lint/typecheck/build OK.
-- Flujo manual verificado: ADMIN → `/admin`, CUSTOMER → `/`.
+🔄 En curso
+- Dashboard ADMIN completo
+  - Métricas reales.
+  - Resumen de ventas/pedidos.
+  - Alertas de stock.
+  - Actividad administrativa.
+- Gestión de stock
+  - Modelo de movimientos de stock.
+  - Migración stock_movements.
+  - Entradas/salidas.
+  - Ajustes manuales.
+  - Stock mínimo.
+  - Historial de movimientos.
+  - UI /admin/stock.
+- Gestión de pedidos
+  - Listado.
+  - Detalle.
+  - Estados.
+  - Actualización de estado.
+  - Historial.
+  - Integración con Checkout/Mercado Pago.
+- Gestión de usuarios
+  - Listado.
+  - Detalle.
+  - Roles.
+  - Activación/desactivación.
+  - UI /admin/usuarios.
+- Configuración de tienda
+  - Datos generales.
+  - Configuración comercial.
+  - Parámetros operativos.
+  - Configuración necesaria para checkout.
+- Seguridad ADMIN
+  - Rate limiting.
+  - CSRF donde corresponda.
+  - Auditoría de acciones administrativas.
+  - Validaciones de permisos por operación.
+  - Revisión de exposición de endpoints ADMIN.
+- Calidad / cierre de fase
+  - Tests de APIs ADMIN.
+  - Tests de permisos ADMIN/CUSTOMER.
+  - Tests de upload.
+  - Tests de normalización de imágenes.
+  - Build/lint/typecheck/tests.
+  - Prueba completa del flujo ADMIN.
+  - Actualizar TIMELINE.md.
+  - Actualizar README con estado final de Fase 7.
 
-- Próxima: Fase 7.3 — Stock Management
+#### Resumen ejecutivo
 
-⚠️ **Deuda técnica conocida**: `better-sqlite3` puede crashear en `npm run dev` durante HMR (crash nativo intermitente, no afecta producción/build/tests). Ver `TIMELINE.md`.
+FASE 7 — BACKOFFICE ADMIN
 
-⚠️ **Docker + native addon**: `better-sqlite3` requiere compilar en entorno consistente (builder y runner mismo libc). Ver `TIMELINE.md`.
+✅ HECHO
+-  Preflight / Edge Runtime
+- Auth boundary
+- Admin protection
+- Admin shell + dashboard inicial
+- Productos CRUD
+- API de productos
+- Upload de imágenes
+- Diagnóstico Node 24 → Node 22 validado
+- **Ajustes UX y imágenes (Desactivar, thumbnails, upload structure, navegación)**
+
+🔄 EN CURSO
+- Dashboard completo
+- Stock + movimientos
+- Pedidos
+- Usuarios
+- Configuración de tienda
+- Seguridad avanzada
+- Tests + cierre/documentación de Fase 7
+
+⏳ PENDIENTE
+- Dashboard completo
+- Stock + movimientos
+- Pedidos
+- Usuarios
+- Configuración de tienda
+- Seguridad avanzada
+- Tests + cierre/documentación de Fase 7
 
 ## Requisitos
 

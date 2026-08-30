@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.4
 
 # ===== Base (Debian slim for runtime) =====
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 WORKDIR /app
 RUN mkdir -p /app/public/uploads/products
 
 # ===== Dependencies (Debian for building native modules) =====
-FROM node:20-slim AS deps
+FROM node:22-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && \
     rm -rf /var/lib/apt/lists/*

@@ -17,6 +17,7 @@ STACK ACTUAL:
 - Vitest
 - Playwright
 - Docker
+- sharp (generación de thumbnails)
 
 ARQUITECTURA:
 - Domain Services
@@ -29,6 +30,7 @@ ESTADO:
 - Fases 1–6 implementadas.
 - Fase 7.1 Admin Shell + Dashboard implementada.
 - Fase 7.2 Product Management implementada.
+- **Ajustes UX y imágenes (reciente): botón Desactivar corregido, galería thumbnails, upload con estructura fecha/UUID + thumbnails sharp, navegación ADMIN ↔ público, normalización URLs locales.**
 - Fase 7.3 NO debe comenzar todavía.
 
 AUTH ACTUAL:
@@ -59,6 +61,11 @@ relacionado con `Statement::~Statement()`.
 
 Existe una mitigación mediante singleton global, pero el crash nativo puede continuar de forma intermitente durante desarrollo.
 NO confundir este problema del entorno de desarrollo con errores funcionales de autenticación.
+
+RUNTIME ACTUAL:
+- Node.js 22 LTS (`.nvmrc` 22.17.0, Docker `node:22-slim`).
+- Node 24 NO soportado para desarrollo por incompatibilidad better-sqlite3 (crash HMR).
+- Node 20 válido en Docker, pero baseline oficial es Node 22.
 
 COMMIT:
 El estado anterior ya fue guardado en Git.
