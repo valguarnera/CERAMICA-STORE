@@ -130,21 +130,18 @@ export default function ProductosPage() {
             products={data.products}
             formatPrice={formatPrice}
             onEdit={(id) => router.push(`/admin/productos/${id}/editar`)}
-            onToggleActive={(id, active) => {
-              // quick toggle via API
-              fetch(`/api/admin/products/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: !active }),
-              }).then(() => fetchProducts(page));
-            }}
-            onDelete={async (id) => {
-              if (!confirm('¿Eliminar producto? Esta acción no se puede deshacer.')) return;
-              // soft delete = set active false
+            onToggleActive={async (id, active) => {
               await fetch(`/api/admin/products/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: false }),
+                body: JSON.stringify({ active: !active }),
+              });
+              fetchProducts(page);
+            }}
+            onDelete={async (id) => {
+              if (!confirm('¿Eliminar producto permanentemente? Esta acción no se puede deshacer.')) return;
+              await fetch(`/api/admin/products/${id}`, {
+                method: 'DELETE',
               });
               fetchProducts(page);
             }}

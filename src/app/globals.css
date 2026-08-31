@@ -73,3 +73,7 @@ tbody img{
 article img {
   position: relative!important;
 }
+
+nav a{
+  padding-right: 5px;
+}

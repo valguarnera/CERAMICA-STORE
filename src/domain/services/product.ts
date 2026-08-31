@@ -40,7 +40,7 @@ export type SortOption = 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc' |
 export interface ProductListOptions {
   page?: number;
   pageSize?: number;
-  active?: boolean;
+  active?: boolean | null;
   search?: string;
   sort?: SortOption;
 }
@@ -278,6 +278,13 @@ export class ProductService {
       .where('id', '=', id)
       .execute();
     return this.findById(id);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.db
+      .deleteFrom('products')
+      .where('id', '=', id)
+      .execute();
   }
 
   // Admin list (includes inactive if active not specified)

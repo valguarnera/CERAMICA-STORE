@@ -77,3 +77,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const db = getDatabase();
+    const productService = new ProductService(db);
+    const product = await productService.findById(params.id);
+
+    if (!product) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    await productService.delete(params.id);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Admin product delete error:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}

@@ -103,7 +103,7 @@ export function ProductTable({ products, formatPrice, onEdit, onToggleActive, on
                   <button
                     onClick={() => onDelete(product.id)}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                    title="Desactivar (soft delete)"
+                    title="Eliminar permanentemente"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

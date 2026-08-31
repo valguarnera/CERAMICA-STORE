@@ -1,10 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, X, Image as ImageIcon, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { slugify } from '@/presentation/lib/utils';
 import { cn } from '@/presentation/lib/utils';
+
+export interface UploadedImage {
+  id: string;
+  original: string;
+  thumbnail: string;
+}
 
 interface ProductFormProps {
   initialData?: {
@@ -13,7 +19,7 @@ interface ProductFormProps {
     description: string;
     price_cents: number;
     stock: number;
-    images: string[];
+    images: UploadedImage[];
     active: boolean;
     metadata: Record<string, unknown> | null;
   };
@@ -23,7 +29,7 @@ interface ProductFormProps {
     description: string;
     price_cents: number;
     stock: number;
-    images: string[];
+    images: UploadedImage[];
     active: boolean;
     metadata: Record<string, unknown> | null;
   }) => Promise<void>;
@@ -38,16 +44,13 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
     description: initialData?.description || '',
     price_cents: initialData?.price_cents || 0,
     stock: initialData?.stock || 0,
-    images: initialData?.images || [''],
+    images: initialData?.images || [],
     active: initialData?.active ?? true,
     metadata: initialData?.metadata || {},
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [imageUrls, setImageUrls] = useState(formData.images.filter(Boolean));
-  const [newImageUrl, setNewImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // auto-generate slug from name
   const handleNameChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -76,21 +79,17 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
       description: formData.description.trim(),
       price_cents: formData.price_cents,
       stock: formData.stock,
-      images: imageUrls,
+      images: formData.images,
       active: formData.active,
       metadata: formData.metadata,
     });
   };
 
-  const addImage = () => {
-    if (newImageUrl.trim() && !imageUrls.includes(newImageUrl.trim())) {
-      setImageUrls([...imageUrls, newImageUrl.trim()]);
-      setNewImageUrl('');
-    }
-  };
-
-  const removeImage = (url: string) => {
-    setImageUrls(imageUrls.filter(u => u !== url));
+  const removeImage = (imageId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter(img => img.id !== imageId),
+    }));
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,12 +108,14 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
         alert(data.error || 'Error al subir imágenes');
         return;
       }
-      setImageUrls(prev => [...prev, ...data.urls]);
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...data.images],
+      }));
     } catch {
       alert('Error de red al subir imágenes');
     } finally {
       setUploading(false);
-      // reset input
       e.target.value = '';
     }
   };
@@ -199,42 +200,40 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
         </div>
 
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Imágenes (URLs)</label>
-          <div className="mt-2 space-y-2">
-            {imageUrls.map((url, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={e => {
-                    const arr = [...imageUrls];
-                    arr[idx] = e.target.value;
-                    setImageUrls(arr);
-                  }}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImage(url)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+          <label className="block text-sm font-medium text-gray-700">Imágenes</label>
+          <div className="mt-2 space-y-4">
+            {formData.images.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {formData.images.map((img) => (
+                  <div key={img.id} className="relative group">
+                    <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                      <img
+                        src={img.thumbnail}
+                        alt={formData.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(img.id)}
+                      className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                      aria-label="Quitar imagen"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <span className="absolute bottom-1 left-1 right-1 bg-black/50 text-white text-xs px-1 rounded truncate">
+                      {img.original.split('/').pop()}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-            <div className="flex items-center gap-2">
-              <input
-                type="url"
-                value={newImageUrl}
-                onChange={e => setNewImageUrl(e.target.value)}
-                placeholder="Agregar otra URL..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
-              <button type="button" onClick={addImage} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-                Agregar
-              </button>
-            </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg text-gray-500">
+                <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+                <p>No hay imágenes. Sube archivos o arrastra aquí.</p>
+              </div>
+            )}
+
             <div className="mt-2">
               <label className="block text-sm font-medium text-gray-700">Subir archivos</label>
               <input
@@ -243,9 +242,9 @@ export function ProductForm({ initialData, onSubmit, loading, title }: ProductFo
                 multiple
                 onChange={handleFileUpload}
                 disabled={uploading}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
-              {uploading && <p className="mt-1 text-sm text-gray-500">Subiendo...</p>}
+              {uploading && <p className="mt-1 text-sm text-gray-500 flex items-center gap-1"><Upload className="h-4 w-4 animate-spin" /> Subiendo...</p>}
             </div>
             <p className="text-xs text-gray-500">Máximo 10 imágenes. La primera será la principal.</p>
           </div>

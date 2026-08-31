@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   LogOut,
+  Database,
 } from 'lucide-react';
 
 const navigation = [
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Stock', href: '/admin/stock', icon: PackageCheck },
   { name: 'Pedidos', href: '/admin/pedidos', icon: ShoppingCart },
   { name: 'Usuarios', href: '/admin/usuarios', icon: Users },
+  { name: 'Storage', href: '/admin/storage', icon: Database },
   { name: 'Configuración', href: '/admin/configuracion', icon: Settings },
 ];
 

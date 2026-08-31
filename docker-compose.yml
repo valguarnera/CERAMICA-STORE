@@ -16,6 +16,7 @@ services:
     volumes:
       - ceramica-data:/app/data
       - ceramica-backups:/app/backups
+      - ceramica-uploads:/app/public/uploads
       - ./src:/app/src:ro
       - ./public:/app/public:ro
     ports:
@@ -32,3 +33,4 @@ services:
 volumes:
   ceramica-data:
   ceramica-backups:
+  ceramica-uploads:

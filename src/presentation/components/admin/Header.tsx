@@ -1,7 +1,8 @@
 'use client';
 
-import { Menu, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut, Store } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface HeaderProps {
   userRole: string;
@@ -22,6 +23,15 @@ export function Header({ userRole }: HeaderProps) {
       >
         <Menu className="h-6 w-6" aria-hidden="true" />
       </button>
+
+      <Link
+        href="/"
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+        title="Ver tienda"
+      >
+        <Store className="h-4 w-4" />
+        <span className="hidden sm:inline">Ver tienda</span>
+      </Link>
 
       <div className="flex-1" />
 

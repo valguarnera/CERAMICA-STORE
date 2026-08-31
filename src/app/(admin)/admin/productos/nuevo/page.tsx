@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductForm } from '@/presentation/components/admin/ProductForm';
+import type { UploadedImage } from '@/presentation/components/admin/ProductForm';
 
 export default function NuevoProductoPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function NuevoProductoPage() {
     description: string;
     price_cents: number;
     stock: number;
-    images: string[];
+    images: UploadedImage[];
     active: boolean;
     metadata: Record<string, unknown> | null;
   }) => {
@@ -23,7 +24,10 @@ export default function NuevoProductoPage() {
       const res = await fetch('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          images: data.images.map(img => img.original),
+        }),
       });
       if (res.ok) {
         router.push('/admin/productos');

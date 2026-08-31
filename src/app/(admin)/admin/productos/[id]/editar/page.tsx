@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProductForm } from '@/presentation/components/admin/ProductForm';
+import type { UploadedImage } from '@/presentation/components/admin/ProductForm';
 
 interface ProductData {
   id: string;
@@ -11,9 +12,23 @@ interface ProductData {
   description: string;
   price_cents: number;
   stock: number;
-  images: string[];
+  images: UploadedImage[];
   active: boolean;
   metadata: Record<string, unknown> | null;
+}
+
+function parseImages(imagesJson: string | null): UploadedImage[] {
+  if (!imagesJson) return [];
+  try {
+    const urls = JSON.parse(imagesJson);
+    return urls.map((url: string) => ({
+      id: url.split('/').pop()?.split('.')[0] || '',
+      original: url,
+      thumbnail: url.replace('/uploads/products/', '/uploads/products/').replace(/\.(jpg|jpeg|png|webp)$/i, '.webp'),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export default function EditarProductoPage() {
@@ -33,7 +48,7 @@ export default function EditarProductoPage() {
           const p = json.product;
           setProduct({
             ...p,
-            images: p.images ? JSON.parse(p.images) : [],
+            images: parseImages(p.images),
             metadata: p.metadata ? JSON.parse(p.metadata) : null,
           });
         } else {
@@ -54,7 +69,7 @@ export default function EditarProductoPage() {
     description: string;
     price_cents: number;
     stock: number;
-    images: string[];
+    images: UploadedImage[];
     active: boolean;
     metadata: Record<string, unknown> | null;
   }) => {
@@ -63,7 +78,10 @@ export default function EditarProductoPage() {
       const res = await fetch(`/api/admin/products/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          images: data.images.map(img => img.original),
+        }),
       });
       if (res.ok) {
         router.push('/admin/productos');
